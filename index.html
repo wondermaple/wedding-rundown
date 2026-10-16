@@ -61,6 +61,8 @@ a{color:inherit}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);white-space:nowrap}
 .pill i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
 .pill.off i{background:var(--faint);box-shadow:none}
+.pill.sync i{background:var(--gold);box-shadow:none;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:600;
   display:inline-flex;align-items:center;gap:6px;cursor:pointer;min-height:36px}
 .btn svg{width:16px;height:16px}
@@ -527,6 +529,7 @@ function renderStatus(){
   var el=$('#status');
   if(!LIVE){ el.className='pill off'; el.innerHTML='<i></i><span>Preview</span>'; return; }
   var hh=hkClock(state.lastSync)+' HKT';
+  if(!state.online && state.syncing){ el.className='pill sync'; el.innerHTML='<i></i><span>Updating…</span>'; return; }
   el.className='pill'+(state.online?'':' off');
   el.innerHTML='<i></i><span>'+(state.online?'Live · '+hh:'Offline · '+hh)+'</span>';
 }
@@ -919,13 +922,16 @@ document.addEventListener('keydown',function(ev){
 /* ── live refresh ── */
 function refresh(){
   if(!LIVE) return;
+  if(state.syncing && Date.now()-state.syncAt<20000) return;
+  state.syncing=true; state.syncAt=Date.now(); renderStatus();
   apiGet(function(d){
+    state.syncing=false;
     if(!d || !d.sheets){ state.online=false; renderStatus(); return; }
     state.online=true; state.lastSync=new Date(); cacheSet(d);
     var changed = !DATA || JSON.stringify(d.sheets)!==JSON.stringify(DATA.sheets);
     DATA=d;
     if(changed && !state.editing && document.activeElement && document.activeElement.id!=='q' && document.activeElement.id!=='sq') render(true); else renderStatus();
-  }, function(){ state.online=false; if(DATA) renderStatus(); else $('#main').innerHTML='<p class="empty">Can’t reach the rundown right now. Check your connection; it will retry automatically.</p>'; });
+  }, function(){ state.syncing=false; state.online=false; if(DATA) renderStatus(); else $('#main').innerHTML='<p class="empty">Can’t reach the rundown right now. Check your connection; it will retry automatically.</p>'; });
 }
 setInterval(function(){ if(!document.hidden && !state.editing) refresh(); },15000);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) refresh(); });
