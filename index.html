@@ -752,7 +752,7 @@ function seatTablesHtml(si,tables){
     var any=!q || t.guests.some(function(g){ return g.v.toLowerCase().indexOf(q)>=0; });
     return '<section class="st-card'+(any?'':' nohit')+'"'+(tt?' style="--tt:'+tt+';--tt-line:'+tl+'"':'')+'>'+
       '<div class="st-h"><h3'+(t.title?cellAttr(si,t.title.r,t.title.c):'')+'>'+esc(title||'Table')+'</h3><small>'+t.guests.length+' seats</small></div>'+
-      seatSvg(t,si,q)+
+      (t.guests.length ? seatSvg(t,si,q) : '<p class="note-s" style="padding:4px 16px 14px;margin:0">No guests assigned yet.</p>')+
       '<ol class="st-list">'+t.guests.map(function(g){ var hit=q && g.v.toLowerCase().indexOf(q)>=0; return '<li class="'+(hit?'hit':'')+'"'+cellAttr(si,g.r,g.c)+'>'+esc(g.v)+'</li>'; }).join('')+'</ol>'+
       '</section>';
   }).join('');
