@@ -7,18 +7,18 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Rundown">
-<meta name="theme-color" content="#f7f3ed">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%236a2c8c%22/%3E%3Ctext x=%2232%22 y=%2243%22 font-size=%2230%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Georgia%22%3EA%26K%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%23c8102e%22/%3E%3Ctext x=%2232%22 y=%2243%22 font-size=%2230%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Georgia%22%3EA%26K%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f7f3ed; --surface:#fffdf9; --surface-2:#f1ebe3; --ink:#2a2130; --muted:#776c80; --faint:#a89eb0;
-  --line:#e6dde2; --accent:#6a2c8c; --accent-2:#8b4fb0; --accent-ink:#fff; --accent-soft:#f0e6f6;
-  --gold:#a5803e; --alert:#c0392b; --alert-soft:#fdeceb; --music:#2f5d9a; --music-soft:#e9f0fa;
-  --note:#6d5a2a; --note-soft:#f8f1dd; --ok:#2e7d4f;
-  --shadow:0 1px 2px rgba(42,33,48,.05),0 6px 18px rgba(42,33,48,.06);
+  --bg:#ffffff; --surface:#ffffff; --surface-2:#f3fbfa; --ink:#2b1a1e; --muted:#7a6a6e; --faint:#b3a5a9;
+  --line:#f1dfe5; --accent:#c8102e; --accent-2:#0abab5; --accent-ink:#fff; --accent-soft:#fde8ee;
+  --gold:#0e958f; --alert:#c8102e; --alert-soft:#fde8ea; --music:#0e8a84; --music-soft:#e2f6f4;
+  --note:#a3485f; --note-soft:#fdeff3; --ok:#0abab5; --tiffany:#81d8d0; --pink:#f6b8c8; --red:#c8102e;
+  --shadow:0 1px 2px rgba(120,20,40,.05),0 6px 18px rgba(120,20,40,.07);
   --r:14px;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang HK","Noto Sans HK","Microsoft JhengHei",Roboto,"Helvetica Neue",Arial,sans-serif;
   --serif:"Cormorant Garamond","Noto Serif HK","Songti TC",Georgia,serif;
@@ -27,19 +27,19 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#141017; --surface:#1e1823; --surface-2:#271f2d; --ink:#f2edf5; --muted:#a99fb1; --faint:#7b7083;
-    --line:#342a3b; --accent:#c8a0e6; --accent-2:#d9bcef; --accent-ink:#1b1220; --accent-soft:#2d2137;
-    --gold:#d6b071; --alert:#ff8a7a; --alert-soft:#3a1e1d; --music:#9cbcf0; --music-soft:#1d2738;
-    --note:#e3cf98; --note-soft:#2e2818; --ok:#7fd3a2;
+    --bg:#170f12; --surface:#221719; --surface-2:#2b1e22; --ink:#f8eef0; --muted:#bba9ae; --faint:#86747a;
+    --line:#3b2a30; --accent:#ff5c72; --accent-2:#4fd1ca; --accent-ink:#1a0d10; --accent-soft:#3a1d26;
+    --gold:#4fd1ca; --alert:#ff6b7a; --alert-soft:#3d1a20; --music:#6fdcd5; --music-soft:#15302e;
+    --note:#f4a9be; --note-soft:#3a2029; --ok:#4fd1ca; --tiffany:#4fb8b1; --pink:#e58aa5; --red:#ff5c72;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
     --tint-mix:14%; --hl-mix:9%; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#141017; --surface:#1e1823; --surface-2:#271f2d; --ink:#f2edf5; --muted:#a99fb1; --faint:#7b7083;
-  --line:#342a3b; --accent:#c8a0e6; --accent-2:#d9bcef; --accent-ink:#1b1220; --accent-soft:#2d2137;
-  --gold:#d6b071; --alert:#ff8a7a; --alert-soft:#3a1e1d; --music:#9cbcf0; --music-soft:#1d2738;
-  --note:#e3cf98; --note-soft:#2e2818; --ok:#7fd3a2;
+  --bg:#170f12; --surface:#221719; --surface-2:#2b1e22; --ink:#f8eef0; --muted:#bba9ae; --faint:#86747a;
+  --line:#3b2a30; --accent:#ff5c72; --accent-2:#4fd1ca; --accent-ink:#1a0d10; --accent-soft:#3a1d26;
+  --gold:#4fd1ca; --alert:#ff6b7a; --alert-soft:#3d1a20; --music:#6fdcd5; --music-soft:#15302e;
+  --note:#f4a9be; --note-soft:#3a2029; --ok:#4fd1ca; --tiffany:#4fb8b1; --pink:#e58aa5; --red:#ff5c72;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
   --tint-mix:14%; --hl-mix:9%; color-scheme:dark;
 }
@@ -78,9 +78,9 @@ main{max-width:760px;margin:0 auto;padding:14px 16px 24px}
 
 /* ── hero ── */
 .hero{position:relative;border-radius:20px;padding:22px 20px 18px;margin-bottom:14px;overflow:hidden;
-  background:linear-gradient(150deg,var(--accent-soft),var(--surface) 70%);border:1px solid var(--line)}
-.hero:after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;
-  border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);box-shadow:0 0 0 14px color-mix(in srgb,var(--gold) 8%,transparent)}
+  background:linear-gradient(135deg,color-mix(in srgb,var(--pink) 32%,var(--surface)) 0%,var(--surface) 50%,color-mix(in srgb,var(--tiffany) 30%,var(--surface)) 100%);
+  border:1px solid var(--line);box-shadow:inset 0 4px 0 var(--red)}
+.hero:after{content:"囍";position:absolute;right:16px;top:12px;font:700 84px/1 "Noto Serif HK","Songti TC","PingFang HK",serif;color:var(--red);opacity:.12;pointer-events:none}
 .eyebrow{font-size:11.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold);font-weight:700}
 .hero h1{font:600 34px/1.05 var(--serif);margin:6px 0 4px;color:var(--accent)}
 .hero .ver{display:inline-block;font-size:12px;font-weight:700;margin-top:4px}
@@ -134,7 +134,7 @@ main{max-width:760px;margin:0 auto;padding:14px 16px 24px}
 .sec-h{position:sticky;top:115px;z-index:10;margin:14px -16px 8px;padding:8px 16px;background:color-mix(in srgb,var(--bg) 92%,transparent);
   -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font:700 20px/1.2 var(--serif);color:var(--accent);display:flex;align-items:center;gap:10px}
 .sec-h:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--gold),transparent)}
-.sec-h.hl{background:color-mix(in srgb,#fff200 var(--hl-mix,30%),var(--bg))}
+.sec-h.hl{background:color-mix(in srgb,var(--tiffany) var(--hl-mix,24%),var(--bg))}
 .tl{list-style:none;margin:0;padding:0}
 .blk{display:grid;grid-template-columns:62px 18px 1fr;gap:0 6px;position:relative;scroll-margin-top:170px}
 .blk.untimed{grid-template-columns:0 18px 1fr}
@@ -751,7 +751,7 @@ function seatTablesHtml(si,tables){
   var q=(state.sq||'').trim().toLowerCase();
   return tables.map(function(t){
     var title=t.title?t.title.v:'', tt='', tl='';
-    if(/groom|男家|新郎/i.test(title)){ tt='#c5d9f1'; tl='#7fa3cf'; } else if(/bride|女家|新娘/i.test(title)){ tt='#ffe5ff'; tl='#d99ad9'; }
+    if(/groom|男家|新郎/i.test(title)){ tt='#c9efeb'; tl='#0abab5'; } else if(/bride|女家|新娘/i.test(title)){ tt='#fcdbe4'; tl='#e27a98'; }
     var any=!q || t.guests.some(function(g){ return g.v.toLowerCase().indexOf(q)>=0; });
     return '<section class="st-card'+(any?'':' nohit')+'"'+(tt?' style="--tt:'+tt+';--tt-line:'+tl+'"':'')+'>'+
       '<div class="st-h"><h3'+(t.title?cellAttr(si,t.title.r,t.title.c):'')+'>'+esc(title||'Table')+'</h3><small>'+t.guests.length+' seats</small></div>'+
