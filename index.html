@@ -68,6 +68,10 @@ a{color:inherit}
 .btn svg{width:16px;height:16px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.ghost{background:transparent}
+.btn.icon{padding:7px 9px;color:var(--accent)}
+.btn.icon svg{width:18px;height:18px}
+@media (max-width:400px){.top-in{gap:7px}.pill{font-size:10.5px}.btn{padding:7px 11px}.brand small{display:none}}
+.brand small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .btn:disabled{opacity:.5}
 
 .editbar{display:none;max-width:760px;margin:0 auto;padding:8px 16px 10px;font-size:13px;color:var(--accent);gap:8px;align-items:center;flex-wrap:wrap}
@@ -286,11 +290,13 @@ body.editing .tel{pointer-events:none}
   .pg{break-before:page}
 }
 </style>
+<script>(function(){var t='light';try{t=localStorage.getItem('rd_theme')||'light';}catch(e){}document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');})();</script>
 </head>
 <body>
 <header class="top"><div class="top-in">
   <div class="brand"><b id="brandT">Wedding Rundown</b><small id="brandS"></small></div>
   <span class="pill" id="status"><i></i><span>Live</span></span>
+  <button class="btn icon" id="themeBtn" type="button"></button>
   <button class="btn" id="editBtn" type="button" aria-pressed="false"></button>
 </div>
 <div class="editbar" id="editbar"></div>
@@ -348,6 +354,8 @@ var I = {
   note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>',
   alert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3l10 18H2L12 3z"/><path d="M12 10v5M12 18v.5"/></svg>',
   seat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="3.6" r="1.6"/><circle cx="12" cy="20.4" r="1.6"/><circle cx="3.6" cy="12" r="1.6"/><circle cx="20.4" cy="12" r="1.6"/><circle cx="6" cy="6" r="1.6"/><circle cx="18" cy="18" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="18" r="1.6"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>',
   sheet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>'
 };
 
@@ -517,6 +525,8 @@ function renderNav(){
 function renderTop(P){
   $('#brandT').textContent = P.title ? P.title.v : 'Wedding Rundown';
   var ev = P.event; $('#brandS').textContent = ev ? ev.title : '';
+  var dark=document.documentElement.getAttribute('data-theme')==='dark', tb=$('#themeBtn');
+  tb.innerHTML=dark?I.sun:I.moon; tb.setAttribute('aria-label', dark?'Switch to bright mode':'Switch to dark mode'); tb.title=dark?'Bright mode':'Dark mode';
   var b=$('#editBtn'); b.innerHTML = state.edit ? I.check+'<span>Done</span>' : I.pen+'<span>Edit</span>';
   b.className = 'btn'+(state.edit?' primary':''); b.setAttribute('aria-pressed', state.edit?'true':'false');
   document.body.classList.toggle('editing', state.edit);
@@ -894,6 +904,11 @@ document.addEventListener('click',function(ev){
   var act=t.closest('[data-act]');
   if(act){ var a=act.getAttribute('data-act'); if(a==='cancel') closeModal(); else if(a==='save') save(); else if(a==='pin') submitPin(); return; }
   if(t.id==='back'){ closeModal(); return; }
+  if(t.closest('#themeBtn')){
+    var nt=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme', nt); try{ localStorage.setItem('rd_theme', nt); }catch(e){}
+    render(true); return;
+  }
   if(t.closest('#editBtn')){
     if(state.edit){ state.edit=false; render(true); return; }
     if(LIVE && DATA && DATA.pinRequired && !state.pin){ askPin(); return; }
