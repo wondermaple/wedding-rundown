@@ -1097,7 +1097,14 @@ function renderSheet(){
   h+='<div class="tblwrap"><table class="grid" style="width:'+tot+'px"><colgroup><col style="width:30px">';
   cw.forEach(function(w){ h+='<col style="width:'+w+'px">'; });
   h+='</colgroup><tbody>';
+  /* guest view: fold away rows the guest feed blanked out (e.g. contacts), keeping merged blocks intact */
+  var skip={};
+  if(GUEST){
+    for(var rb=1;rb<=maxR;rb++){ var any=false; for(var cb=minC;cb<=maxC;cb++) if(m.get(rb,cb).trim()){ any=true; break; } if(!any) skip[rb]=1; }
+    for(var pass2=0;pass2<3;pass2++) (sh.merges||[]).forEach(function(g){ var keep=false; for(var x=g[0];x<=g[2];x++) if(!skip[x]) keep=true; if(keep) for(var y=g[0];y<=g[2];y++) delete skip[y]; });
+  }
   for(var r2=1;r2<=maxR;r2++){
+    if(skip[r2]) continue;
     h+='<tr><th>'+r2+'</th>';
     for(var c2=minC;c2<=maxC;c2++){
       if(m.covered(r2,c2)) continue;
