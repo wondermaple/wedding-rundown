@@ -286,6 +286,32 @@ mark{background:color-mix(in srgb,#ffd84d 70%,transparent);color:inherit;border-
 .tag.date.later{background:var(--surface-2);color:var(--ink)}
 .tag.warn{background:var(--alert-soft);color:var(--alert)}
 .tag.ditto{font-style:italic}
+/* my day */
+.me-hero{border:1px solid var(--line);border-radius:var(--r);padding:14px 16px 16px;margin:2px 0 14px;box-shadow:inset 0 4px 0 var(--red);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--pink) 26%,var(--surface)) 0%,var(--surface) 55%,color-mix(in srgb,var(--tiffany) 24%,var(--surface)) 100%)}
+.me-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.me-hero h1{font:600 34px/1.1 var(--serif);color:var(--accent);margin:4px 0 8px}
+.me-roles{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.me-roles .tag{font-size:12.5px;padding:4px 10px}
+.rolezh{opacity:.8;font-weight:500}
+html[lang^="zh"] .rolezh{display:none}
+.me-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.me-sum div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 4px 8px;text-align:center}
+.me-sum b{display:block;font:700 22px/1.1 var(--serif);color:var(--ink)}
+.me-sum span{font-size:11px;color:var(--muted)}
+.me-seat{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px}
+.me-seat b{display:block;font:600 19px/1.2 var(--serif);margin-top:2px}
+.me-seat small{color:var(--muted);font-size:12px}
+.me-seat .chip{display:inline-flex;align-items:center;gap:6px}
+.me-seat .chip svg{width:16px;height:16px}
+.me-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 10px;font:600 21px/1.2 var(--serif);margin:20px 0 6px}
+.me-h small{font:12px/1.3 var(--sans);color:var(--muted)}
+.me-grp{margin:16px 0 8px;font-size:11.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold);font-weight:700}
+.me-pick{display:flex;flex-wrap:wrap;gap:8px}
+.chip.mep{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 14px;border-radius:14px;white-space:normal;text-align:left;max-width:100%}
+.chip.mep b{font-size:14.5px}
+.chip.mep small{font-size:11px;color:var(--muted)}
+mark.me-mk{background:color-mix(in srgb,var(--tiffany) 45%,transparent);color:inherit;border-radius:4px;padding:0 2px;font-weight:600}
 .st-opts{display:grid;gap:8px;margin-top:4px}
 .st-opts .btn{justify-content:center;min-height:46px;font-size:15px}
 @media (max-width:400px){.mt-k b{font-size:21px}.mt-pr{padding:9px 12px}}
@@ -585,7 +611,7 @@ function statusOf(P){
 }
 
 /* ── render: chrome ── */
-var TABS=[{id:'rundown',label:'Rundown',icon:'list'},{id:'seating',label:'Seating',icon:'seat'},{id:'info',label:'Info & Contacts',icon:'people'},{id:'songs',label:'Songs',icon:'music'},{id:'materials',label:'Materials',icon:'box'},{id:'sheet',label:'Sheet view',icon:'grid'}];
+var TABS=[{id:'rundown',label:'Rundown',icon:'list'},{id:'me',label:'My day',icon:'user'},{id:'seating',label:'Seating',icon:'seat'},{id:'info',label:'Info & Contacts',icon:'people'},{id:'songs',label:'Songs',icon:'music'},{id:'materials',label:'Materials',icon:'box'},{id:'sheet',label:'Sheet view',icon:'grid'}];
 if(GUEST) TABS=TABS.filter(function(t){ return t.id==='rundown' || t.id==='songs' || t.id==='sheet'; });
 function renderNav(){
   $('#nav').innerHTML = TABS.map(function(t){
@@ -629,7 +655,7 @@ function rowMatches(row,b){
 function blockHtml(P,b){
   var si=P.si, C=P.cols, cards=[];
   b.cards.forEach(function(card){
-    var rows=card.rows.filter(function(r){ return rowMatches(r,b); });
+    var rows=card.rows.filter(function(r){ return rowMatches(r,b) && (!ROWF || ROWF(r,b,card)); });
     if(!rows.length) return;
     var html='', first=true;
     rows.forEach(function(row){
@@ -827,6 +853,7 @@ function parseMaterials(si){
   var dc=hc.filter(function(c){ return c!==cS; }), cI=dc[0]||1, cL=dc[1]||cI+1, cA=dc[2]||cI+2;
   if(!cS) cS=Math.max(cI,cL,cA)+1;
   var book=contactBook(), names=['Groom','Bride','Parents'].concat(Object.keys(book).map(function(k){ return book[k].name; }));
+  try{ mePeople().forEach(function(p){ if(p.grp!=='guest' && p.grp!=='family' && !names.some(function(n){ return n.toLowerCase()===p.name.toLowerCase(); })) names.push(p.name); }); }catch(e){}
   var yr=(P && P.event && P.event.date) ? P.event.date.y : hkNow().y;
   var groups=[{title:m.get(hdr,cI), r:hdr, items:[]}], cur=groups[0], prev='';
   for(var r2=hdr+1;r2<=m.R;r2++){
@@ -1168,6 +1195,16 @@ var UI={
   'Someone just changed this. Showing the latest.':'有人剛修改了這項，現顯示最新版本。',
   'Edit PIN needed':'需要編輯密碼','Could not save, please try again':'未能儲存，請再試一次','No connection. Not saved yet.':'沒有網絡連線，尚未儲存。',
   'No connection':'沒有網絡連線','Wrong PIN':'密碼錯誤','Editing on':'已開啟編輯',
+  'My day':'我的流程','Who are you?':'你是誰？','Type your name…':'輸入你的名字…','Change':'更換',
+  'Pick your name once. This phone will remember it, and you’ll see only your steps, what to look after and your table.':'選一次你的名字，此手機會記住，之後只顯示你的環節、你負責的物品和你的座位。',
+  'Couple & family':'新人及家人','Bridal party':'兄弟姊妹','MCs':'司儀','Vendors & helpers':'供應商及幫手','Guests':'賓客',
+  'No match. Try another spelling, or pick your role above.':'找不到。請試另一個拼法，或在上面選你的角色。',
+  'First call':'最早集合','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
+  'Your table':'你的座位','Open seating plan':'查看座位表','Your steps':'你的環節','Things you look after':'你負責的物品','Also for you':'也與你有關',
+  'Only steps that mention you, your role or your group':'只顯示提及你、你的角色或組別的環節','Mentions you; someone else brings it':'提及你；由其他人負責帶',
+  'Nothing in the rundown mentions you yet.':'流程中暫時未有提及你。',
+  'Bridesmaid':'姊妹','Groomsman':'兄弟','Best man':'伴郎','Maid of honour':'伴娘','MC':'司儀','Decoration':'佈置','Live band':'樂隊','Hotel':'酒店','Guest':'賓客',
+  "Bride's mom":'新娘媽媽',"Groom's parents":'新郎父母','Helper':'幫手',
   'Bright mode':'明亮模式','Dark mode':'深色模式','Switch to bright mode':'切換至明亮模式','Switch to dark mode':'切換至深色模式','Language':'語言'
 };
 var UIci={}; Object.keys(UI).forEach(function(k){ UIci[k.toLowerCase()]=UI[k]; });
@@ -1234,6 +1271,10 @@ var RULES=[
   [/^(\d+) overdue$/, function(m){ return m[1]+' 項逾期'; }],
   [/^(\d+) (guest|seat|table|song)s?$/, function(m){ return m[1]+' '+{guest:'位賓客',seat:'個座位',table:'張枱',song:'首歌'}[m[2]]; }],
   [/^(\d+)% done$/, function(m){ return '已完成 '+m[1]+'%'; }],
+  [/^(\d+) steps?$/, function(m){ return m[1]+' 個環節'; }],
+  [/^(\d+) items?$/, function(m){ return m[1]+' 項'; }],
+  [/^Seat (\d+) of (\d+)$/, function(m){ return '第 '+m[1]+' 位（共 '+m[2]+' 位）'; }],
+  [/^First call$/, function(m){ return '最早集合'; }],
   [/^([\d\/\-. ]+)\((\w+day)\)$/i, function(m){ var w=WDF[m[2].toLowerCase()]; return w ? m[1].trim()+'（'+w+'）' : undefined; }],
   [/^Table (\d+)(.*)$/i, function(m){ var r=m[2]; if(/[A-Za-z]/.test(r)){ var x=T(r.trim()); if(x==null) return null; r=' '+x; } return m[1]+'號枱'+r; }],
   [/^Today: (.+)$/, function(m){ return sub('今天：',m[1]); }],
@@ -1390,6 +1431,217 @@ document.documentElement.lang = LANG==='zh' ? 'zh-Hant-HK' : 'en';
 langUI();
 if(LANG==='zh') pass(document.body);
 
+/* ── My day: one person's steps, things to look after, and table ──
+   Everything comes from the sheet: a step is "yours" when it mentions your name,
+   your role or your group (e.g. Bridesmaids / BM / 姊妹). */
+var ROWF=null, ME_CACHE=null;
+var ME_GROUPS=[
+  {re:/bridesmaid|bridemaid|姊妹/i, role:'Bridesmaid', zh:'姊妹', grp:'party', terms:['Bridesmaids','Bridesmaid','Bridemaids','BM','姊妹']},
+  {re:/groomsm|兄弟/i, role:'Groomsman', zh:'兄弟', grp:'party', terms:['Groomsmen','Groomsman','GM','兄弟']},
+  {re:/(^|[^a-z])mc([^a-z]|$)|emcee|司儀/i, role:'MC', zh:'司儀', grp:'mc', terms:['MC','MCs','M.C.','Emcee','Emcees','司儀']},
+  {re:/lawyer|律師/i, role:'Lawyer', zh:'律師', grp:'vendor', terms:['Lawyer','律師']},
+  {re:/make ?up|化妝/i, role:'Makeup', zh:'化妝師', grp:'vendor', terms:['化妝師','Makeup artist','Make-up artist']},
+  {re:/photo|攝影/i, role:'Photographer', zh:'攝影師', grp:'vendor', terms:['Photographer','Photographers','2P + 1V','2P1V','2P','Phototaking','photography','拍攝']},
+  {re:/deco/i, role:'Decoration', zh:'佈置', grp:'vendor', terms:['DecoHouse','Deco house','Deco House','decoration']},
+  {re:/mitis|band/i, role:'Live band', zh:'樂隊', grp:'vendor', terms:['Mitis Chamber','Live Band','band']},
+  {re:/renaissance|hotel/i, role:'Hotel', zh:'酒店', grp:'vendor', terms:['Renaissance','Banquet Service Team','Service Team','Banquet cast']}
+];
+/* roles the couple confirmed */
+var ME_EXTRA={
+  jenkin:{grp:'party', roles:[{role:'Best man', zh:'伴郎', terms:['Best man','Bestman','伴郎']}, 'Groomsman']},
+  winsy:{grp:'party', roles:[{role:'Maid of honour', zh:'伴娘', terms:['Maid of Honor','Maid of Honour','伴娘']}, 'Bridesmaid']}
+};
+var ME_FAMILY=[
+  {id:'bride', name:'Bride', grp:'family', roles:[{role:'Bride', zh:'新娘'}], alias:['Keyley','Kayley'], mat:['bride'],
+   inc:[/(^|[^A-Za-z])bride(?![A-Za-z])/i, /新娘/, /女家/, /男家/, /kayley|keyley/i],
+   exc:[/bride['’]s\s*(&\s*groom['’]s\s*)?(mom|mum|mother|dad|father|parents?)/gi, /新娘(媽媽|媽|母親)/g]},
+  {id:'groom', name:'Groom', grp:'family', roles:[{role:'Groom', zh:'新郎'}], alias:['Adonis'], mat:['groom'],
+   inc:[/(^|[^A-Za-z])grooms?(?![A-Za-z])/i, /新郎/, /男家/, /女家/, /接新娘/, /adonis/i],
+   exc:[/(groom|adonis)['’]s\s*(dad|mom|mum|mother|father|parents?)(\s*&\s*(dad|mom|mum))?/gi, /bride['’]s\s*&\s*groom['’]s\s*(mom|mum|mother)/gi]},
+  {id:'bridemom', name:"Bride's mom", grp:'family', roles:[{role:"Bride's mom", zh:'新娘媽媽'}], alias:[], mat:['parents'],
+   inc:[/bride['’]s\s*(&\s*groom['’]s\s*)?(mom|mum|mother)/i, /新娘(媽媽|媽|母親)/, /(^|[^A-Za-z])parents?(?![A-Za-z])/i, /famil(y|ies)/i, /女家/],
+   exc:[/(groom|adonis)['’]s\s*parents?/gi]},
+  {id:'groomparents', name:"Groom's parents", grp:'family', roles:[{role:"Groom's parents", zh:'新郎父母'}], alias:[], mat:['parents'],
+   inc:[/(groom|adonis)['’]s\s*(dad|mom|mum|mother|father|parents?)/i, /bride['’]s\s*&\s*groom['’]s\s*(mom|mum|mother)/i, /(^|[^A-Za-z])parents?(?![A-Za-z])/i, /famil(y|ies)/i, /男家/],
+   exc:[/bride['’]s\s*parents?/gi]}
+];
+var ME_GUEST={role:'Guest', zh:'賓客', terms:['Guest','Guests','賓客','嘉賓']};
+function termRe(t){
+  return /[^\x00-\x7f]/.test(t) ? new RegExp(escRe(t)) : new RegExp('(^|[^A-Za-z0-9])'+escRe(t)+'(?![A-Za-z0-9])','i');
+}
+function meCompile(p){
+  var terms=[p.name].concat(p.alias||[]);
+  p.roles.forEach(function(r){ (r.terms||[]).forEach(function(t){ terms.push(t); }); });
+  p.rx=(p.inc||[]).concat(terms.filter(function(t){ return t && !/^(bride|groom)$/i.test(t); }).map(termRe));
+  return p;
+}
+function meHit(p, text){
+  var s=String(text||''); (p.exc||[]).forEach(function(e){ s=s.replace(e,' '); });
+  return p.rx.some(function(x){ return x.test(s); });
+}
+function mePeople(){
+  if(ME_CACHE && ME_CACHE.d===DATA) return ME_CACHE.list;
+  var list=ME_FAMILY.map(function(f){ return {id:f.id,name:f.name,grp:f.grp,roles:f.roles.slice(),alias:f.alias,mat:f.mat,inc:f.inc,exc:f.exc}; });
+  var byKey={};
+  function grpOf(role){ return ME_GROUPS.filter(function(g){ return g.role===role; })[0]; }
+  function add(name, g, label){
+    var k=name.toLowerCase(), p=byKey[k];
+    if(!p){ p=byKey[k]={id:'p:'+k, name:name, grp:g?g.grp:'vendor', roles:[], alias:[], mat:[k]}; list.push(p); }
+    var role = g ? {role:g.role, zh:g.zh, terms:g.terms} : {role:label, terms:[label]};
+    if(!p.roles.some(function(r){ return r.role===role.role; })) p.roles.push(role);
+    if(g && (g.grp==='party' || g.grp==='mc')) p.grp=g.grp;
+  }
+  try{
+    var PP=P||parse();
+    PP.info.forEach(function(row){
+      var cells=row.cells, ni=-1;
+      cells.forEach(function(c,i){ if(ni<0 && /\(\s*tel/i.test(c.v)) ni=i; });
+      if(ni<0) return;
+      var txt=cells[ni].v, label=ni>0?cells[ni-1].v:'';
+      if(!label){ var k=txt.indexOf(':'); if(k>0){ label=txt.slice(0,k); txt=txt.slice(k+1); } }
+      label=label.replace(/[:：]\s*$/,'').replace(/\s*contacts?\s*$/i,'').trim();
+      var g=ME_GROUPS.filter(function(x){ return x.re.test(label); })[0];
+      txt.replace(/\(\s*tel[^)]*\)/gi,'  ').replace(/\d+\)/g,'  ').replace(/_/g,' ')
+        .split(/\s*[\/,、&＋+]\s*|\s{2,}/).forEach(function(n){
+          n=n.trim(); if(/^[A-Za-z][A-Za-z.'’ -]{0,24}$/.test(n) && !/^(tel|and|or)$/i.test(n)) add(n, g, label||'Helper');
+        });
+    });
+  }catch(e){}
+  Object.keys(ME_EXTRA).forEach(function(k){
+    var x=ME_EXTRA[k], nm=k.charAt(0).toUpperCase()+k.slice(1);
+    x.roles.forEach(function(r){
+      if(typeof r==='string'){ add(nm, grpOf(r)); return; }
+      if(!byKey[k]) add(nm, null, r.role);
+      var p=byKey[k]; p.grp=x.grp;
+      p.roles=p.roles.filter(function(q){ return q.role!==r.role; }); p.roles.unshift(r);
+    });
+  });
+  try{ var si=seatSheetIndex(); if(si>=0) parseSeating(si).forEach(function(t){ t.guests.forEach(function(g){
+    var n=g.v.replace(/[*]+$/,'').trim(); if(!n || byKey[n.toLowerCase()]) return;
+    var p={id:'g:'+n.toLowerCase(), name:n, grp:'guest', roles:[ME_GUEST], alias:[], mat:[n.toLowerCase()]};
+    byKey[n.toLowerCase()]=p; list.push(p);
+  }); }); }catch(e){}
+  list.forEach(meCompile);
+  ME_CACHE={d:DATA, list:list};
+  return list;
+}
+function meId(v){ try{ if(v===undefined) return localStorage.getItem('rd_me')||''; localStorage.setItem('rd_me', v); }catch(e){} return ''; }
+function meSeat(p){
+  var names=[p.name].concat(p.alias||[]).map(function(n){ return n.toLowerCase(); });
+  try{ var si=seatSheetIndex(); if(si<0) return null; var out=null;
+    parseSeating(si).forEach(function(t){ t.guests.forEach(function(g,i){
+      if(!out && names.indexOf(g.v.replace(/[*]+$/,'').trim().toLowerCase())>=0) out={title:t.title?t.title.v:'Table', seat:i+1, of:t.guests.length, name:g.v.replace(/[*]+$/,'').trim()};
+    }); });
+    return out; }catch(e){ return null; }
+}
+function roleTags(p){
+  return p.roles.map(function(r){ return '<span class="tag pic">'+esc(r.role)+(r.zh?' <span class="rolezh">'+esc(r.zh)+'</span>':'')+'</span>'; }).join('');
+}
+var ME_GRP=[['family','Couple & family'],['party','Bridal party'],['mc','MCs'],['vendor','Vendors & helpers'],['guest','Guests']];
+function mePickHtml(people){
+  var q=(state.meq||'').trim().toLowerCase(), h='';
+  ME_GRP.forEach(function(g){
+    var ps=people.filter(function(p){
+      if(p.grp!==g[0]) return false;
+      if(!q) return g[0]!=='guest';
+      return (p.name+' '+p.roles.map(function(r){ return r.role+' '+(r.zh||''); }).join(' ')+' '+(p.alias||[]).join(' ')).toLowerCase().indexOf(q)>=0;
+    });
+    if(!ps.length) return;
+    h+='<div class="me-grp">'+g[1]+'</div><div class="me-pick">'+ps.map(function(p){
+      return '<button type="button" class="chip mep" data-me="'+esc(p.id)+'"><b>'+esc(p.name)+'</b>'+(function(){ var sub=p.roles.filter(function(r){ return r.role!==p.name; }).map(function(r){ return r.role; }).join(' · '); return sub ? '<small>'+esc(sub)+'</small>' : '<small class="rolezh">'+esc(p.roles.map(function(r){ return r.zh||''; }).join(' · '))+'</small>'; })()+'</button>';
+    }).join('')+'</div>';
+  });
+  return h || '<p class="empty">No match. Try another spelling, or pick your role above.</p>';
+}
+function renderMe(PP){
+  var people=mePeople(), id=meId(), me=people.filter(function(p){ return p.id===id; })[0];
+  if(!me){
+    $('#main').innerHTML='<div class="eyebrow" style="margin:4px 0 2px">My day</div><div class="info-title">Who are you?</div>'+
+      '<p class="note-s">Pick your name once. This phone will remember it, and you’ll see only your steps, what to look after and your table.</p>'+
+      '<div class="tools" style="top:57px"><label class="search">'+I.search+'<input id="meq" type="search" placeholder="Type your name…" value="'+esc(state.meq||'')+'" autocomplete="off"></label></div>'+
+      '<div id="me-pick">'+mePickHtml(people)+'</div>';
+    return;
+  }
+  var S=statusOf(PP), keepQ=state.q, steps='', nSteps=0, mine=[], first=null, nowB=null, nextB=null;
+  state.q='';
+  ROWF=function(row,b,card){
+    var hit=function(r){ return meHit(me, r.who+'\n'+r.desc+'\n'+r.rem); };
+    return hit(row) || (row===card.rows[0] && card.rows.some(hit));
+  };
+  PP.sections.forEach(function(s){
+    var items=[];
+    s.blocks.forEach(function(b){
+      var hb=blockHtml(PP,b); if(!hb) return;
+      items.push(hb); nSteps++; mine.push(b);
+      if(!first && b.start!=null) first={b:b,s:s};
+      if(S.today===s && b.start!=null){
+        if(b.st==='now' && !nowB) nowB=b;
+        if(b.start>S.now.min && (!nextB || b.start<nextB.start)) nextB=b;
+      }
+    });
+    if(items.length) steps+='<section class="sec">'+(s.title?'<h2 class="sec-h'+(s.yellow?' hl':'')+'">'+esc(s.title)+'</h2>':'')+'<ol class="tl">'+items.join('')+'</ol></section>';
+  });
+  ROWF=null;
+  var D=matData(), own=[], forYou=[];
+  if(D){
+    D.all.forEach(function(x){
+      var resp=x.pics.concat(x.also).some(function(n){ return me.mat.indexOf(n.toLowerCase())>=0; });
+      if(resp) own.push(x);
+      else if(me.grp!=='guest' && meHit(me, [x.item,x.act,x.eff].join('\n'))) forYou.push(x);
+    });
+    var ord=function(x){ return x.t.k==='done'||x.t.k==='na' ? 1e9 : (x.t.next?x.t.next.n:5e8); };
+    own.sort(function(a,b){ return ord(a)-ord(b); });
+  }
+  var seat=meSeat(me);
+  var fd = first ? (/(\d{1,2})\/(\d{1,2})/.exec(first.s.title)||[]) : [];
+  var h='<section class="me-hero"><div class="me-top"><div class="eyebrow">My day</div><button type="button" class="chip" data-mechange="1">Change</button></div>'+
+    '<h1>'+esc(me.name)+'</h1><div class="me-roles">'+roleTags(me)+'</div>'+
+    '<div class="me-sum"><div><b>'+(first?esc(first.b.head||first.b.time):'–')+'</b><span>'+(fd[1]?'First call · '+fd[1]+'/'+fd[2]:'First call')+'</span></div>'+
+    '<div><b>'+nSteps+'</b><span>'+(nSteps===1?'step':'steps')+'</span></div>'+
+    '<div><b>'+openOf(own).length+'</b><span>to look after</span></div></div></section>';
+  if(nowB || nextB){
+    h+='<div class="nowcard">';
+    if(nowB) h+='<h4>Now for you</h4><div class="row"><span class="tm">'+esc(nowB.time)+'</span><span>'+esc(nowB.label)+'</span></div>';
+    if(nextB) h+='<h4 style="'+(nowB?'margin-top:10px;':'')+'color:var(--gold)">Next for you · in '+(nextB.start-S.now.min)+' min</h4><div class="row"><span class="tm">'+esc(nextB.time)+'</span><span>'+esc(nextB.label)+'</span></div>';
+    h+='<div class="act"><button class="btn primary" type="button" data-jump="b-'+(nowB||nextB).r+'">Jump to it</button></div></div>';
+  }
+  if(seat) h+='<div class="card me-seat"><div><div class="eyebrow">Your table</div><b>'+esc(seat.title)+'</b><small>'+esc('Seat '+seat.seat+' of '+seat.of)+'</small></div>'+
+    '<button type="button" class="chip" data-seatme="'+esc(seat.name)+'">'+I.seat+'Open seating plan</button></div>';
+  h+='<div class="me-h">Your steps<small>Only steps that mention you, your role or your group</small></div>';
+  h+= steps || '<p class="empty">Nothing in the rundown mentions you yet.</p>';
+  if(own.length){
+    h+='<div class="me-h">Things you look after<small>'+(own.length===1?'1 item':own.length+' items')+'</small></div>';
+    h+='<div class="mt-list">'+own.map(function(x){ return matItemHtml(D,x); }).join('')+'</div>';
+  }
+  if(forYou.length){
+    h+='<div class="me-h">Also for you<small>Mentions you; someone else brings it</small></div>';
+    h+='<div class="mt-list">'+forYou.map(function(x){ return matItemHtml(D,x); }).join('')+'</div>';
+  }
+  state.q=keepQ;
+  $('#main').innerHTML=h;
+  if(LANG!=='zh') meMark(me);
+}
+function meMark(p){
+  var terms=[p.name].concat(p.alias||[]); p.roles.forEach(function(r){ (r.terms||[]).forEach(function(t){ terms.push(t); }); if(!r.terms) terms.push(r.role); });
+  if(p.id==='bride') terms.push('Bride','新娘'); if(p.id==='groom') terms.push('Groom','新郎');
+  if(p.id==='bridemom') terms.push("Bride's mom",'Bride’s mom',"Bride's Mom",'Parents','parents','新娘媽媽');
+  if(p.id==='groomparents') terms.push("Groom's dad & mom","Groom's mom","Groom's parent","Groom's Dad","Adonis's Parent",'Parents','parents');
+  var asc=[], cjk=[]; terms.forEach(function(t){ t=String(t||'').trim(); if(!t) return; (/[^\x00-\x7f]/.test(t)?cjk:asc).push(escRe(t)); });
+  asc.sort(function(a,b){ return b.length-a.length; });
+  var src=[]; if(asc.length) src.push('(^|[^A-Za-z0-9])('+asc.join('|')+')(?![A-Za-z0-9])'); if(cjk.length) src.push('('+cjk.join('|')+')');
+  if(!src.length) return; var rx=new RegExp(src.join('|'),'gi');
+  [].slice.call(document.querySelectorAll('#main .tl .cards')).forEach(function(box){
+    var w=document.createTreeWalker(box, NodeFilter.SHOW_TEXT), n, list=[]; while((n=w.nextNode())) list.push(n);
+    list.forEach(function(t){
+      if(t.parentElement.closest('.ph,a.tel,mark')) return;
+      var v=t.nodeValue, out=document.createDocumentFragment(), last=0, m, any=false; rx.lastIndex=0;
+      while((m=rx.exec(v))){ var pre=asc.length?(m[1]||''):'', word=asc.length?(m[2]||m[3]):m[1]; if(!word){ rx.lastIndex++; continue; } var st=m.index+pre.length;
+        out.appendChild(document.createTextNode(v.slice(last,st))); var mk=document.createElement('mark'); mk.className='me-mk'; mk.textContent=word; out.appendChild(mk); last=st+word.length; any=true; }
+      if(!any) return; out.appendChild(document.createTextNode(v.slice(last))); t.parentNode.replaceChild(out,t);
+    });
+  });
+}
+
 /* ── render all ── */
 var P=null;
 function render(keepScroll){
@@ -1401,6 +1653,7 @@ function render(keepScroll){
   else if(state.tab==='songs') renderSongs();
   else if(state.tab==='seating') renderSeating();
   else if(state.tab==='materials') renderMaterials();
+  else if(state.tab==='me') renderMe(P);
   else if(state.tab==='sheet') renderSheet();
   else renderRundown(P);
   if(keepScroll) window.scrollTo(0,y);
@@ -1473,6 +1726,9 @@ document.addEventListener('click',function(ev){
   }
   var tab=t.closest('[data-tab]');
   if(tab){ state.tab=tab.getAttribute('data-tab'); ss('rd_tab',state.tab); render(); window.scrollTo(0,0); return; }
+  var mep=t.closest('[data-me]'); if(mep){ meId(mep.getAttribute('data-me')); state.meq=''; render(); window.scrollTo(0,0); return; }
+  if(t.closest('[data-mechange]')){ meId(''); state.meq=''; render(); window.scrollTo(0,0); return; }
+  var msf=t.closest('[data-seatme]'); if(msf){ state.sq=msf.getAttribute('data-seatme'); state.tab='seating'; ss('rd_tab','seating'); render(); window.scrollTo(0,0); return; }
   var sht=t.closest('[data-sheet]'); if(sht){ state.sheet=+sht.getAttribute('data-sheet'); render(); return; }
   var mtb=t.closest('[data-mtf],[data-mtpic],[data-mtview],[data-st],[data-mtwho]');
   if(mtb){
@@ -1493,6 +1749,7 @@ document.addEventListener('click',function(ev){
     if(el){ el.scrollIntoView({behavior:'smooth',block:'start'}); if(el.classList.contains('blk')){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); } } }
 });
 document.addEventListener('input',function(ev){
+  if(ev.target.id==='meq'){ state.meq=ev.target.value; var mpk=$('#me-pick'); if(mpk) mpk.innerHTML=mePickHtml(mePeople()); return; }
   if(ev.target.id==='mq'){ state.mt=state.mt||{view:'date',pic:'',f:'',q:''}; state.mt.q=ev.target.value; var ml=$('#mt-list'), md=matData(); if(ml && md) ml.innerHTML=matListHtml(md); return; }
   if(ev.target.id==='sq'){ state.sq=ev.target.value; var sw=$('#st-wrap'), ssi=seatSheetIndex(); if(sw && ssi>=0) sw.innerHTML=seatTablesHtml(ssi, parseSeating(ssi)); return; }
   if(ev.target.id==='q'){ state.q=ev.target.value; if(P) $('#list').innerHTML=listHtml(P); var g=document.querySelector('.gcard'); if(g) g.style.display=state.q.trim()?'none':''; }
@@ -1513,12 +1770,12 @@ function refresh(){
     state.online=true; state.lastSync=new Date(); cacheSet(d);
     var changed = !DATA || JSON.stringify(d.sheets)!==JSON.stringify(DATA.sheets);
     DATA=d;
-    if(changed && !state.editing && document.activeElement && document.activeElement.id!=='q' && document.activeElement.id!=='sq' && document.activeElement.id!=='mq') render(true); else renderStatus();
+    if(changed && !state.editing && document.activeElement && document.activeElement.id!=='q' && document.activeElement.id!=='sq' && document.activeElement.id!=='mq' && document.activeElement.id!=='meq') render(true); else renderStatus();
   }, function(){ state.syncing=false; state.online=false; if(DATA) renderStatus(); else $('#main').innerHTML='<p class="empty">Can’t reach the rundown right now. Check your connection; it will retry automatically.</p>'; });
 }
 setInterval(function(){ if(!document.hidden && !state.editing) refresh(); },15000);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) refresh(); });
-setInterval(function(){ if(state.tab==='rundown' && !state.editing && !(document.activeElement&&document.activeElement.id==='q')) render(true); },60000);
+setInterval(function(){ if((state.tab==='rundown'||state.tab==='me') && !state.editing && !(document.activeElement&&/^(q|meq)$/.test(document.activeElement.id))) render(true); },60000);
 
 window.__printAll = function(){
   P=parse(); renderTop(P);
