@@ -378,13 +378,15 @@ body.editing .tel{pointer-events:none}
 'use strict';
 var HAS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
 var API = window.API_URL || null;
+var GUEST = window.APP_VARIANT === 'guest';
+var CACHE_KEY = GUEST ? 'rd_cache_guest' : 'rd_cache';
 var LIVE = !!(HAS_GAS || API);
 var DATA = window.BOOT || null;
-function cacheSet(d){ try{ localStorage.setItem('rd_cache', JSON.stringify({t:Date.now(), d:d})); }catch(e){} }
-function cacheGet(){ try{ var s=localStorage.getItem('rd_cache'); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function cacheSet(d){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(), d:d})); }catch(e){} }
+function cacheGet(){ try{ var s=localStorage.getItem(CACHE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
 function apiGet(ok, fail){
   if(HAS_GAS) return google.script.run.withSuccessHandler(ok).withFailureHandler(fail).getData();
-  fetch(API+'?api=data&t='+Date.now(), {credentials:'omit', cache:'no-store'})
+  fetch(API+'?api=data'+(GUEST?'&view=guest':'')+'&t='+Date.now(), {credentials:'omit', cache:'no-store'})
     .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).then(ok, fail);
 }
 function apiPost(fn, req, ok, fail){
@@ -584,6 +586,7 @@ function statusOf(P){
 
 /* ── render: chrome ── */
 var TABS=[{id:'rundown',label:'Rundown',icon:'list'},{id:'seating',label:'Seating',icon:'seat'},{id:'info',label:'Info & Contacts',icon:'people'},{id:'songs',label:'Songs',icon:'music'},{id:'materials',label:'Materials',icon:'box'},{id:'sheet',label:'Sheet view',icon:'grid'}];
+if(GUEST) TABS=TABS.filter(function(t){ return t.id==='rundown' || t.id==='songs' || t.id==='sheet'; });
 function renderNav(){
   $('#nav').innerHTML = TABS.map(function(t){
     return '<button type="button" data-tab="'+t.id+'" class="'+(state.tab===t.id?'on':'')+'">'+I[t.icon]+'<span>'+t.label+'</span></button>';
@@ -595,6 +598,7 @@ function renderTop(P){
   var dark=document.documentElement.getAttribute('data-theme')==='dark', tb=$('#themeBtn');
   tb.innerHTML=dark?I.sun:I.moon; tb.setAttribute('aria-label', dark?'Switch to bright mode':'Switch to dark mode'); tb.title=dark?'Bright mode':'Dark mode';
   var b=$('#editBtn'); b.innerHTML = state.edit ? I.check+'<span>Done</span>' : I.pen+'<span>Edit</span>';
+  if(GUEST){ state.edit=false; b.style.display='none'; }
   b.className = 'btn'+(state.edit?' primary':''); b.setAttribute('aria-pressed', state.edit?'true':'false');
   document.body.classList.toggle('editing', state.edit);
   $('#editbar').innerHTML = LIVE
@@ -1382,6 +1386,7 @@ if(LANG==='zh') pass(document.body);
 /* ── render all ── */
 var P=null;
 function render(keepScroll){
+  if(!TABS.some(function(t){ return t.id===state.tab; })) state.tab='rundown';
   var y=window.scrollY;
   if(!DATA){ renderNav(); $('#main').innerHTML='<p class="empty">Loading the rundown…</p>'; return; }
   P=parse(); renderNav(); renderTop(P);
@@ -1454,6 +1459,7 @@ document.addEventListener('click',function(ev){
     render(true); return;
   }
   if(t.closest('#editBtn')){
+    if(GUEST) return;
     if(state.edit){ state.edit=false; render(true); return; }
     if(LIVE && DATA && DATA.pinRequired && !state.pin){ askPin(); return; }
     state.edit=true; render(true); return;
