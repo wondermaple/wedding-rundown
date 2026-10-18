@@ -70,6 +70,13 @@ a{color:inherit}
 .btn.ghost{background:transparent}
 .btn.icon{padding:7px 9px;color:var(--accent)}
 .btn.icon svg{width:18px;height:18px}
+.lang-sw{display:inline-flex;flex:none;align-items:center;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--surface)}
+.lang-sw button{border:0;background:none;color:var(--muted);font:600 12px/1 var(--sans);padding:7px 9px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.lang-sw button.on{background:var(--accent);color:var(--accent-ink)}
+.lang-sw.busy button.on{animation:pulse 1s ease-in-out infinite}
+@media (max-width:460px){.top-in{gap:6px;padding:10px 12px}.lang-sw button{padding:7px 7px;font-size:11.5px}.pill{font-size:10.5px;gap:5px}.brand b{font-size:17px}}
+@media (max-width:380px){.pill span{display:none}}
+@media (max-width:460px){.brand{flex:1 1 auto}.brand b{font-size:0;line-height:1}.brand b:before{content:"囍";font:700 24px/1 "Noto Serif HK","Songti TC","PingFang HK",serif;color:var(--red)}}
 @media (max-width:400px){.top-in{gap:7px}.pill{font-size:10.5px}.btn{padding:7px 11px}.brand small{display:none}}
 .brand small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .btn:disabled{opacity:.5}
@@ -351,6 +358,7 @@ body.editing .tel{pointer-events:none}
 <header class="top"><div class="top-in">
   <div class="brand"><b id="brandT">Wedding Rundown</b><small id="brandS"></small></div>
   <span class="pill" id="status"><i></i><span>Live</span></span>
+  <div class="lang-sw notranslate" id="langSw" role="group" aria-label="Language"><button type="button" data-lang="en">Eng</button><button type="button" data-lang="zh">繁體中文</button></div>
   <button class="btn icon" id="themeBtn" type="button"></button>
   <button class="btn" id="editBtn" type="button" aria-pressed="false"></button>
 </div>
@@ -612,7 +620,7 @@ function remHtml(row,si,cE){
 }
 function rowMatches(row,b){
   var q=state.q.trim().toLowerCase(); if(!q) return true;
-  return [row.who,row.desc,row.rem,b.time].join('\n').toLowerCase().indexOf(q)>=0;
+  return ([row.who,row.desc,row.rem,b.time].join('\n')+trHay([row.who,row.desc,row.rem])).toLowerCase().indexOf(q)>=0;
 }
 function blockHtml(P,b){
   var si=P.si, C=P.cols, cards=[];
@@ -863,7 +871,7 @@ function matFilter(x){
   var mt=state.mt, q=(mt.q||'').trim().toLowerCase();
   if(mt.pic && x.pics.concat(x.also).map(function(n){ return n.toLowerCase(); }).indexOf(mt.pic)<0) return false;
   if(mt.f && x.t.k!==mt.f) return false;
-  if(q){ var hay=[x.item, x.loc, x.eff, x.st, x.g].join(' ').toLowerCase();
+  if(q){ var hay=([x.item, x.loc, x.eff, x.st, x.g].join(' ')+trHay([x.item, x.loc, x.eff])).toLowerCase();
     if(/^[\x00-\x7f]+$/.test(q)){ if(!new RegExp('(^|[^a-z0-9])'+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).test(hay)) return false; }
     else if(hay.indexOf(q)<0) return false; }
   return true;
@@ -1103,6 +1111,274 @@ function renderSheet(){
   $('#main').innerHTML=h;
 }
 
+/* ── language: English / 繁體中文 ──
+   Display-only. Sheet text is translated by Google Translate (through the Apps Script
+   web app, cached for everyone). App labels use a fixed HK-style dictionary. Names,
+   songs, phone numbers, inputs and the edit box are never touched, and nothing is
+   ever written back to the sheet. */
+var LANG='en'; try{ if(localStorage.getItem('rd_lang')==='zh') LANG='zh'; }catch(e){}
+var TR={}; try{ TR=JSON.parse(localStorage.getItem('rd_tr_zh')||'{}')||{}; }catch(e){ TR={}; }
+var UI={
+  'Rundown':'流程','Seating':'座位','Info & Contacts':'資料及聯絡','Songs':'歌曲','Materials':'物資','Sheet view':'原表',
+  'Edit':'編輯','Done':'完成','Live':'即時','Offline':'離線','Updating…':'更新中…','Preview':'預覽',
+  'Wedding Rundown':'婚禮流程','Open spreadsheet ↗':'開啟試算表 ↗',
+  'Editing: tap any dashed text to change it. Saves to the shared sheet for everyone.':'編輯模式：點擊任何虛線文字即可修改，會儲存到共用試算表，所有人同步更新。',
+  'Preview copy: edits here stay on this device. Use the live link to edit for everyone.':'預覽版本：修改只會保存在此裝置。請用正式連結為所有人編輯。',
+  'Loading the rundown…':'正在載入流程…',
+  'Can’t reach the rundown right now. Check your connection; it will retry automatically.':'暫時無法連線，請檢查網絡；系統會自動重試。',
+  'days to go':'日後','Hong Kong time':'香港時間','Tomorrow':'明天','Today':'今天','See the 23/10 schedule below':'請看下面 23/10 的流程',
+  'Happening now':'正在進行','Nothing scheduled right now.':'目前沒有安排。','Up next':'下一項','Jump to now':'跳到現在',
+  'Search people, tasks, songs…':'搜尋人物、事項、歌曲…','Day at a glance':'全日概覽','tap a bar':'點擊時段',
+  '+ remark':'+ 備註','+ people / action':'+ 人物 / 事項','+ description':'+ 內容','+ location':'+ 地點','+ add':'+ 新增',
+  'Nothing matches.':'沒有符合的結果。','Date':'日期','Venue':'場地','Bridal Rm':'新娘房','Groom Rm':'新郎房','TBC':'待定',
+  'Seating Plan':'座位表','Find a guest…':'搜尋賓客…','Table':'枱','No guests assigned yet.':'尚未安排賓客。',
+  'The seating plan sheet is empty.':'座位表是空的。',"GROOM's Table":'新郎枱',"BRIDE's Table":'新娘枱',"GROOM's":'新郎',"BRIDE's":'新娘',
+  'No seating plan yet. Add a sheet tab called “Seating Plan” in the spreadsheet and it will appear here.':'未有座位表。在試算表加入名為「Seating Plan」的分頁，便會在這裏顯示。',
+  'Contacts':'聯絡人','Tap number to call · green = WhatsApp':'點擊號碼致電 · 綠色 = WhatsApp','WhatsApp':'WhatsApp',
+  'MC Contact':'司儀聯絡','Main Contact':'主要聯絡','Other Contacts':'其他聯絡','Bridesmaids':'姊妹','Groomsmen':'兄弟',
+  'Lawyer':'律師','Time':'時間','Peoples / Action':'人物 / 事項','Descriptions':'內容','Remarks':'備註','Makeup':'化妝','Photographer':'攝影師',
+  'Song List':'歌單','Music':'音樂','The song list sheet is empty.':'歌單是空的。',
+  'No song list yet. Add a sheet tab called “Song List” in the spreadsheet and it will appear here.':'未有歌單。在試算表加入名為「Song List」的分頁，便會在這裏顯示。',
+  'Material list':'物資清單','Material List':'物資清單','Overdue':'已逾期','Due today':'今日到期','Next 3 days':'未來 3 日',
+  'Who’s on what':'誰負責甚麼','Details ▾':'詳情 ▾','Hide ▴':'收起 ▴','All done ✓':'全部完成 ✓','Send list':'傳送清單',
+  'By date':'按日期','By list':'按清單','To do':'待辦','In progress':'進行中','No action':'毋須處理','No action needed':'毋須處理',
+  'No date set':'未定日期','Ditto · same as above':'同上','Ditto':'同上','same as above':'同上',
+  'Search items, places, people…':'搜尋物品、地點、人物…','Status':'狀態',
+  'Updates the Google Sheet for everyone.':'會為所有人更新 Google 試算表。',
+  'Updates the Google Sheet for everyone (edit PIN needed).':'會為所有人更新 Google 試算表（需要編輯密碼）。',
+  'Groom':'新郎','Bride':'新娘','Parents':'父母','Groom and Bride':'新郎及新娘','Bride and Groom':'新娘及新郎',
+  'No material list yet. Add a sheet tab called “Material List” in the spreadsheet and it will appear here.':'未有物資清單。在試算表加入名為「Material List」的分頁，便會在這裏顯示。',
+  'Exactly as in the spreadsheet: same rows, same order, same colours. Scroll sideways for all columns.':'與試算表完全相同：同樣的行、次序及顏色。左右捲動可查看所有欄。',
+  'This sheet is empty.':'此工作表是空的。',
+  'Edit cell':'編輯儲存格','Cancel':'取消','Save':'儲存','Saving…':'儲存中…','Enter edit PIN':'輸入編輯密碼',
+  'Ask the couple or Winsy for the PIN.':'請向新人或 Winsy 索取密碼。','Unlock':'解鎖',
+  'Saved for everyone ✓':'已為所有人儲存 ✓','saved for everyone ✓':'已為所有人儲存 ✓','Changed on this device only':'只在此裝置更改',
+  'Someone just changed this. Showing their version.':'有人剛修改了這項，現顯示最新版本。',
+  'Someone just changed this. Showing the latest.':'有人剛修改了這項，現顯示最新版本。',
+  'Edit PIN needed':'需要編輯密碼','Could not save, please try again':'未能儲存，請再試一次','No connection. Not saved yet.':'沒有網絡連線，尚未儲存。',
+  'No connection':'沒有網絡連線','Wrong PIN':'密碼錯誤','Editing on':'已開啟編輯',
+  'Bright mode':'明亮模式','Dark mode':'深色模式','Switch to bright mode':'切換至明亮模式','Switch to dark mode':'切換至深色模式','Language':'語言'
+};
+var UIci={}; Object.keys(UI).forEach(function(k){ UIci[k.toLowerCase()]=UI[k]; });
+/* terms Google should not translate (or should translate our way) */
+var GLOSS={'Renaissance Hong Kong Harbour View Hotel':'香港萬麗海景酒店','Renaissance':'萬麗酒店','Bridesmaids':'姊妹','Bridemaids':'姊妹',
+  'Groomsmen':'兄弟','Bestman':'伴郎','Best man':'伴郎','Maid of Honor':'伴娘','Maid of Honour':'伴娘','Qun Kwa':'裙褂','Ma Kua':'馬褂',
+  'Magua':'馬褂','Kua':'裙褂','March-in':'進場','March in':'進場','Re-March in':'再次進場','Re-march in':'再次進場','Re march in':'再次進場','March out':'退場','March-out':'退場','Sign:':'簽署：','Cake cut':'切蛋糕','Cake cutting':'切蛋糕','Red pockets':'利是','Emcees':'司儀','M.C.':'司儀','MC':'司儀','BM':'姊妹','GM':'兄弟','Celebrant':'監禮人'};
+var GLi={}; Object.keys(GLOSS).forEach(function(k){ GLi[k.toLowerCase()]=GLOSS[k]; });
+var KEEP=['Adonis','Keyley','Kayley','Jackle','George','Ada','Nicky','Ive','Cherie','Ting','Fina','Winsy','Idy','Jenkin','Dickens','Kevin',
+  'Cherry','Andrew','Mitis Chamber','DecoHouse','Deco House','Deco house','Charmaine Wedding Couture','Charmaine Wedding','United Garden',
+  'SageTea','Oasis Room','Oasis','CityU','2P1V','2P + 1V','2P'];
+var NAMESET={}, KEEPRX=null, NAMES_FOR=null;
+function escRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function buildNames(){
+  if(!DATA || NAMES_FOR===DATA) return; NAMES_FOR=DATA;
+  var names=KEEP.slice(), songs=[];
+  try{ var si=seatSheetIndex(); if(si>=0) parseSeating(si).forEach(function(t){ t.guests.forEach(function(g){ names.push(g.v.replace(/[*]+$/,'').trim()); }); }); }catch(e){}
+  try{ var D=matData(); if(D) matPeople(D).forEach(function(p){ if(!UIci.hasOwnProperty(p.name.toLowerCase())) names.push(p.name); }); }catch(e){}
+  try{ var gi=songSheetIndex(); if(gi>=0){ var m=model(gi);
+    for(var r=1;r<=m.R;r++){ var cells=[]; for(var c=1;c<=m.C;c++){ var v=m.get(r,c).trim(); if(v) cells.push(v); }
+      if(cells.length===1){ var x=cells[0]; if(/[:：]\s*$/.test(x)) continue; var k=x.search(/[:：]/); songs.push(k>0&&k<40?x.slice(k+1).trim():x); }
+      else for(var j=1;j<cells.length;j++) songs.push(cells[j]); } } }catch(e){}
+  NAMESET={};
+  names.concat(songs).forEach(function(n){ n=String(n).trim(); if(/[A-Za-z]/.test(n)) NAMESET[n.toLowerCase()]=1; });
+  var terms={};
+  names.concat(Object.keys(GLOSS)).forEach(function(n){ n=String(n).trim(); if(n.length>1 && /[A-Za-z]/.test(n)) terms[esc(n)]=1; });
+  songs.forEach(function(s){ s=String(s).trim(); if(/\s/.test(s) && /[A-Za-z]/.test(s)) terms[esc(s)]=1; });
+  var list=Object.keys(terms).sort(function(a,b){ return b.length-a.length; }).map(escRe);
+  KEEPRX=list.length?new RegExp('(^|[^A-Za-z0-9])('+list.join('|')+')(?![A-Za-z0-9])','gi'):null;
+}
+function isName(s){
+  var k=s.replace(/^\d+\.\s*/,'').replace(/\s*\((?:HK|\+\d+)\)$/,'').replace(/[*…]+$/,'').trim().toLowerCase();
+  if(!k) return false; if(NAMESET[k]) return true;
+  if(/…$/.test(s)){ for(var n in NAMESET) if(n.indexOf(k)===0) return true; }
+  return false;
+}
+function protect(h){
+  if(!KEEPRX) return h;
+  return h.split(/(<[^>]*>)/).map(function(seg,i){
+    if(i%2) return seg;
+    return seg.replace(KEEPRX,function(m0,pre,term){ var g=GLi[term.toLowerCase()]; return pre+'<span translate="no">'+(g!=null?g:term)+'</span>'; });
+  }).join('');
+}
+var WD={mon:'一',tue:'二',wed:'三',thu:'四',fri:'五',sat:'六',sun:'日'};
+var MOS={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function zhTime(t){ var m=/^(\d{1,2})(?::(\d\d))?\s*(am|pm)$/i.exec(t); return m ? (m[3].toLowerCase()==='am'?'上午':'下午')+m[1]+(m[2]?':'+m[2]:'時') : null; }
+function zhDate(s){
+  var m=/^(?:(mon|tue|wed|thu|fri|sat|sun)[a-z]*,? )?(\d{1,2}) (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:,? (\d{4}))?(\s.*)?$/i.exec(s);
+  if(!m) return undefined;
+  var out=(m[4]?m[4]+'年':'')+MOS[m[3].toLowerCase()]+'月'+(+m[2])+'日'+(m[1]?'（'+WD[m[1].toLowerCase()]+'）':'');
+  var rest=(m[5]||'').trim(); if(!rest) return out;
+  var tm=zhTime(rest); if(tm) return out+' '+tm;
+  if(rest==='(HK)') return out+'（香港）';
+  var x=T(rest); return x==null?null:out+' '+x;
+}
+var WDF={monday:'星期一',tuesday:'星期二',wednesday:'星期三',thursday:'星期四',friday:'星期五',saturday:'星期六',sunday:'星期日'};
+function sub(pre,s,post){ var x=T(s); return x==null?null:pre+x+(post||''); }
+var RULES=[
+  [/^(\d{1,2}:\d\d) HKT$/, function(m){ return '香港 '+m[1]; }],
+  [/^HK time (\d{1,2}:\d\d)$/, function(m){ return '香港時間 '+m[1]; }],
+  [/^in (\d+) min$/i, function(m){ return m[1]+' 分鐘後'; }],
+  [/^in (\d+) days?$/i, function(m){ return m[1]+' 日後'; }],
+  [/^(\d+) open$/, function(m){ return m[1]+' 項未完成'; }],
+  [/^(\d+) overdue$/, function(m){ return m[1]+' 項逾期'; }],
+  [/^(\d+) (guest|seat|table|song)s?$/, function(m){ return m[1]+' '+{guest:'位賓客',seat:'個座位',table:'張枱',song:'首歌'}[m[2]]; }],
+  [/^(\d+)% done$/, function(m){ return '已完成 '+m[1]+'%'; }],
+  [/^([\d\/\-. ]+)\((\w+day)\)$/i, function(m){ var w=WDF[m[2].toLowerCase()]; return w ? m[1].trim()+'（'+w+'）' : undefined; }],
+  [/^Table (\d+)(.*)$/i, function(m){ var r=m[2]; if(/[A-Za-z]/.test(r)){ var x=T(r.trim()); if(x==null) return null; r=' '+x; } return m[1]+'號枱'+r; }],
+  [/^Today: (.+)$/, function(m){ return sub('今天：',m[1]); }],
+  [/^Next: (.+)$/, function(m){ return sub('下一項：',m[1]); }],
+  [/^Also: (.+)$/, function(m){ var ok=true, o=m[1].split(/,\s*/).map(function(p){ var x=T(p); if(x==null) ok=false; return x; }); return ok?'另有：'+o.join('、'):null; }],
+  [/^Earlier step was (.+)$/, function(m){ return sub('較早步驟：',m[1]); }],
+  [/^was (.+)$/, function(m){ return sub('原定 ',m[1]); }],
+  [/^Send (.+) the list$/, function(m){ return sub('傳送清單給 ',m[1]); }],
+  [/^(.+) ✕$/, function(m){ return sub('',m[1],' ✕'); }],
+  [/^No matches for “([\s\S]*)”\.$/, function(m){ return '找不到「'+m[1]+'」。'; }],
+  [/^WhatsApp [\d+ ]+$/, function(m){ return m[0]; }],
+  [/^[A-Z]{1,2}\d+$/, function(m){ return m[0]; }]
+];
+function rule(s){
+  var d=zhDate(s); if(d!==undefined) return d;
+  for(var i=0;i<RULES.length;i++){ var m=RULES[i][0].exec(s); if(m){ var r=RULES[i][1](m); if(r!==undefined) return r; } }
+  return undefined;
+}
+/* translate one display string: string, or null while Google is still working on it */
+function T(s){
+  if(!/[A-Za-z]/.test(s)) return s;
+  if(UI.hasOwnProperty(s)) return UI[s];
+  var lc=s.toLowerCase(); if(UIci.hasOwnProperty(lc)) return UIci[lc];
+  if(isName(s)) return s;
+  var r=rule(s); if(r!==undefined) return r;
+  if(s.indexOf(' · ')>0){ var ok=true, out=s.split(' · ').map(function(p){ var x=T(p.trim()); if(x==null) ok=false; return x; }); return ok?out.join(' · '):null; }
+  if(TR.hasOwnProperty(s)) return TR[s];
+  return G(s, protect(esc(s)).replace(/\n/g,'<br>'));
+}
+/* ── Google Translate queue ── */
+var QUEUE={}, INFL={}, FAIL={}, qT=null, trBusy=0, saveT=null;
+function G(key, html){
+  if(TR.hasOwnProperty(key)) return TR[key];
+  if(!INFL[key] && !(FAIL[key]>Date.now())){ QUEUE[key]=html; if(!qT) qT=setTimeout(flushQ,120); }
+  return null;
+}
+function apiTranslate(list, ok, fail){
+  if(HAS_GAS) return google.script.run.withSuccessHandler(ok).withFailureHandler(fail).translate(list);
+  if(!API) return fail();
+  fetch(API, {method:'POST', credentials:'omit', body:JSON.stringify({action:'tr', q:list})})
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(res){ ok(res && res.t); }, fail);
+}
+function decodeHtml(h){ var ta=document.createElement('textarea'); ta.innerHTML=h; return ta.value; }
+function fromHtml(h){ return decodeHtml(String(h).replace(/<br\s*\/?>/gi,'\n').replace(/<[^>]*>/g,'')).replace(/[ \t]+\n/g,'\n').trim(); }
+function cleanUnit(h){
+  var box=document.createElement('div'); box.innerHTML=String(h).replace(/<br\s*\/?>/gi,'\n'); var out='';
+  (function walk(n){ for(var c=n.firstChild;c;c=c.nextSibling){
+    if(c.nodeType===3) out+=esc(c.nodeValue);
+    else if(c.nodeType===1){ var cl=(c.getAttribute('class')||'').trim();
+      if(c.tagName==='SPAN' && /^(dt (past|now|fut)|tag ditto)$/.test(cl)) out+='<span class="'+cl+'">'+esc(c.textContent)+'</span>'; else walk(c); } } })(box);
+  return out.trim();
+}
+function flushQ(){
+  qT=null;
+  var keys=Object.keys(QUEUE).slice(0,60); if(!keys.length) return;
+  var list=keys.map(function(k){ var h=QUEUE[k]; delete QUEUE[k]; INFL[k]=1; return h; });
+  trBusy++; langUI();
+  apiTranslate(list, function(res){
+    trBusy--; var got=0;
+    keys.forEach(function(k,i){ delete INFL[k]; var r=res && res[i];
+      if(typeof r==='string' && r){ TR[k]= k.charAt(0)==='\u0001' ? cleanUnit(r) : fromHtml(r); got++; } else FAIL[k]=Date.now()+60000; });
+    langUI(); saveTR();
+    if(got && LANG==='zh') pass(document.body);
+    if(Object.keys(QUEUE).length && !qT) qT=setTimeout(flushQ,50);
+  }, function(){
+    trBusy--; keys.forEach(function(k){ delete INFL[k]; FAIL[k]=Date.now()+30000; }); langUI();
+  });
+}
+function saveTR(){ clearTimeout(saveT); saveT=setTimeout(function(){ try{ localStorage.setItem('rd_tr_zh', JSON.stringify(TR)); }catch(e){} },800); }
+/* ── apply to the page ── */
+var SKIP='script,style,textarea,input,select,.notranslate,[translate="no"],.sg-nm,a.tel', UNIT='.mt-act';
+var ORIG=new WeakMap(), TOUCHED=[], UORIG=new WeakMap(), UTOUCHED=[], ATOUCHED=[];
+function trText(n){
+  var el=n.parentElement; if(!el || el.closest(SKIP) || el.closest(UNIT)) return;
+  var o=ORIG.has(n)?ORIG.get(n):n.nodeValue; if(!/[A-Za-z]/.test(o)) return;
+  var k=o.trim(), t=T(k); if(t==null) return;
+  var i=o.indexOf(k), v=o.slice(0,i)+t+o.slice(i+k.length);
+  if(!ORIG.has(n)){ ORIG.set(n,o); TOUCHED.push(n); }
+  if(n.nodeValue!==v) n.nodeValue=v;
+}
+function unitHtml(src){
+  var h=src.replace(/<span class="(dt [a-z]+|tag ditto)">([^<]*)<\/span>/g, function(m0,c,d){
+    var z = c==='tag ditto' ? '同上' : zhDate(decodeHtml(d));
+    return typeof z==='string' ? '<span class="'+c+'" translate="no">'+esc(z)+'</span>' : m0;
+  });
+  return protect(h).replace(/\n/g,'<br>');
+}
+function trUnit(el){
+  if(el.closest(SKIP)) return;
+  if(el.__trOut!=null && el.innerHTML===el.__trOut) return;
+  var src=UORIG.has(el)?UORIG.get(el):el.innerHTML;
+  if(!/[A-Za-z]/.test(src.replace(/<[^>]*>/g,''))) return;
+  var key='\u0001'+src, t=TR.hasOwnProperty(key)?TR[key]:G(key, unitHtml(src)); if(t==null) return;
+  if(!UORIG.has(el)){ UORIG.set(el,src); UTOUCHED.push(el); }
+  el.innerHTML=t; el.__trOut=el.innerHTML; MO.takeRecords();
+}
+function trAttrs(el){
+  if(!el.getAttribute || el.closest(SKIP.replace(',input','').replace(',textarea',''))) return;
+  ['placeholder','title','aria-label'].forEach(function(a){
+    if(!el.hasAttribute(a)) return;
+    var st=el.__trA||(el.__trA={}), cur=el.getAttribute(a), rec=st[a];
+    var o = rec && cur===rec.t ? rec.o : cur; if(!/[A-Za-z]/.test(o)) return;
+    var t=T(o.trim()); if(t==null) return;
+    if(!rec || rec.o!==o){ st[a]={o:o,t:t}; ATOUCHED.push(el); } else rec.t=t;
+    if(cur!==t) el.setAttribute(a,t);
+  });
+}
+function pass(root){
+  if(LANG!=='zh' || !root) return;
+  buildNames();
+  if(root.nodeType===3){ var pu0=root.parentElement && root.parentElement.closest(UNIT); if(pu0) trUnit(pu0); else trText(root); return; }
+  if(root.nodeType!==1) return;
+  if(root.closest(SKIP)) return;
+  var pu=root.parentElement && root.parentElement.closest(UNIT); if(pu){ trUnit(pu); return; }
+  if(root.matches(UNIT)) trUnit(root);
+  [].slice.call(root.querySelectorAll(UNIT)).forEach(trUnit);
+  var w=document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n, list=[];
+  while((n=w.nextNode())) list.push(n);
+  list.forEach(trText);
+  trAttrs(root); [].slice.call(root.querySelectorAll('[placeholder],[title],[aria-label]')).forEach(trAttrs);
+  if(TOUCHED.length>6000) TOUCHED=TOUCHED.filter(function(x){ return x.isConnected; });
+}
+var MO=new MutationObserver(function(recs){
+  if(LANG!=='zh') return;
+  recs.forEach(function(r){ if(r.target.nodeType===1) trAttrs(r.target); for(var i=0;i<r.addedNodes.length;i++) pass(r.addedNodes[i]); });
+});
+MO.observe(document.body, {childList:true, subtree:true});
+function restoreAll(){
+  TOUCHED.forEach(function(n){ if(n.isConnected && ORIG.has(n)) n.nodeValue=ORIG.get(n); });
+  UTOUCHED.forEach(function(el){ if(el.isConnected && UORIG.has(el)) el.innerHTML=UORIG.get(el); el.__trOut=null; });
+  ATOUCHED.forEach(function(el){ var st=el.__trA||{}; Object.keys(st).forEach(function(a){ if(el.getAttribute(a)===st[a].t) el.setAttribute(a,st[a].o); }); el.__trA=null; });
+  ORIG=new WeakMap(); UORIG=new WeakMap(); TOUCHED=[]; UTOUCHED=[]; ATOUCHED=[];
+}
+/* search also matches the Chinese the viewer sees */
+function trHay(arr){
+  if(LANG!=='zh') return '';
+  buildNames();
+  return '\n'+arr.map(function(s){ s=String(s||'').trim(); if(!/[A-Za-z]/.test(s)) return ''; return T(s)||''; }).join('\n');
+}
+function langUI(){
+  var sw=$('#langSw'); if(!sw) return;
+  [].slice.call(sw.querySelectorAll('[data-lang]')).forEach(function(b){ var on=b.getAttribute('data-lang')===LANG; b.className=on?'on':''; b.setAttribute('aria-pressed',on?'true':'false'); });
+  sw.classList.toggle('busy', trBusy>0 && LANG==='zh');
+}
+function setLang(l){
+  if(l===LANG) return;
+  LANG=l; try{ localStorage.setItem('rd_lang', l); }catch(e){}
+  document.documentElement.lang = l==='zh' ? 'zh-Hant-HK' : 'en';
+  langUI();
+  if(l==='zh') pass(document.body); else { restoreAll(); render(true); }
+}
+document.documentElement.lang = LANG==='zh' ? 'zh-Hant-HK' : 'en';
+langUI();
+if(LANG==='zh') pass(document.body);
+
 /* ── render all ── */
 var P=null;
 function render(keepScroll){
@@ -1171,6 +1447,7 @@ document.addEventListener('click',function(ev){
   var act=t.closest('[data-act]');
   if(act){ var a=act.getAttribute('data-act'); if(a==='cancel') closeModal(); else if(a==='save') save(); else if(a==='pin') submitPin(); else if(a==='st') pickStatus(act.getAttribute('data-v')); return; }
   if(t.id==='back'){ closeModal(); return; }
+  var lg=t.closest('[data-lang]'); if(lg){ setLang(lg.getAttribute('data-lang')); return; }
   if(t.closest('#themeBtn')){
     var nt=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
     document.documentElement.setAttribute('data-theme', nt); try{ localStorage.setItem('rd_theme', nt); }catch(e){}
