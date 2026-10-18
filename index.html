@@ -611,7 +611,7 @@ function statusOf(P){
 }
 
 /* ── render: chrome ── */
-var TABS=[{id:'rundown',label:'Rundown',icon:'list'},{id:'me',label:'My day',icon:'user'},{id:'seating',label:'Seating',icon:'seat'},{id:'info',label:'Info & Contacts',icon:'people'},{id:'songs',label:'Songs',icon:'music'},{id:'materials',label:'Materials',icon:'box'},{id:'sheet',label:'Sheet view',icon:'grid'}];
+var TABS=[{id:'rundown',label:'Rundown',icon:'list'},{id:'me',label:'My Role',icon:'user'},{id:'seating',label:'Seating',icon:'seat'},{id:'info',label:'Info & Contacts',icon:'people'},{id:'songs',label:'Songs',icon:'music'},{id:'materials',label:'Materials',icon:'box'},{id:'sheet',label:'Sheet view',icon:'grid'}];
 if(GUEST) TABS=TABS.filter(function(t){ return t.id==='rundown' || t.id==='songs' || t.id==='sheet'; });
 function renderNav(){
   $('#nav').innerHTML = TABS.map(function(t){
@@ -1195,7 +1195,7 @@ var UI={
   'Someone just changed this. Showing the latest.':'有人剛修改了這項，現顯示最新版本。',
   'Edit PIN needed':'需要編輯密碼','Could not save, please try again':'未能儲存，請再試一次','No connection. Not saved yet.':'沒有網絡連線，尚未儲存。',
   'No connection':'沒有網絡連線','Wrong PIN':'密碼錯誤','Editing on':'已開啟編輯',
-  'My day':'我的流程','Who are you?':'你是誰？','Type your name…':'輸入你的名字…','Change':'更換',
+  'My day':'我的角色','My Role':'我的角色','Who are you?':'你是誰？','Type your name…':'輸入你的名字…','Change':'更換',
   'Pick your name once. This phone will remember it, and you’ll see only your steps, what to look after and your table.':'選一次你的名字，此手機會記住，之後只顯示你的環節、你負責的物品和你的座位。',
   'Couple & family':'新人及家人','Bridal party':'兄弟姊妹','MCs':'司儀','Vendors & helpers':'供應商及幫手','Guests':'賓客',
   'No match. Try another spelling, or pick your role above.':'找不到。請試另一個拼法，或在上面選你的角色。',
@@ -1431,7 +1431,7 @@ document.documentElement.lang = LANG==='zh' ? 'zh-Hant-HK' : 'en';
 langUI();
 if(LANG==='zh') pass(document.body);
 
-/* ── My day: one person's steps, things to look after, and table ──
+/* ── My Role: one person's steps, things to look after, and table ──
    Everything comes from the sheet: a step is "yours" when it mentions your name,
    your role or your group (e.g. Bridesmaids / BM / 姊妹). */
 var ROWF=null, ME_CACHE=null;
@@ -1556,7 +1556,7 @@ function mePickHtml(people){
 function renderMe(PP){
   var people=mePeople(), id=meId(), me=people.filter(function(p){ return p.id===id; })[0];
   if(!me){
-    $('#main').innerHTML='<div class="eyebrow" style="margin:4px 0 2px">My day</div><div class="info-title">Who are you?</div>'+
+    $('#main').innerHTML='<div class="eyebrow" style="margin:4px 0 2px">My Role</div><div class="info-title">Who are you?</div>'+
       '<p class="note-s">Pick your name once. This phone will remember it, and you’ll see only your steps, what to look after and your table.</p>'+
       '<div class="tools" style="top:57px"><label class="search">'+I.search+'<input id="meq" type="search" placeholder="Type your name…" value="'+esc(state.meq||'')+'" autocomplete="off"></label></div>'+
       '<div id="me-pick">'+mePickHtml(people)+'</div>';
@@ -1594,7 +1594,7 @@ function renderMe(PP){
   }
   var seat=meSeat(me);
   var fd = first ? (/(\d{1,2})\/(\d{1,2})/.exec(first.s.title)||[]) : [];
-  var h='<section class="me-hero"><div class="me-top"><div class="eyebrow">My day</div><button type="button" class="chip" data-mechange="1">Change</button></div>'+
+  var h='<section class="me-hero"><div class="me-top"><div class="eyebrow">My Role</div><button type="button" class="chip" data-mechange="1">Change</button></div>'+
     '<h1>'+esc(me.name)+'</h1><div class="me-roles">'+roleTags(me)+'</div>'+
     '<div class="me-sum"><div><b>'+(first?esc(first.b.head||first.b.time):'–')+'</b><span>'+(fd[1]?'First call · '+fd[1]+'/'+fd[2]:'First call')+'</span></div>'+
     '<div><b>'+nSteps+'</b><span>'+(nSteps===1?'step':'steps')+'</span></div>'+
