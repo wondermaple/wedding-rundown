@@ -168,6 +168,17 @@ main{max-width:760px;margin:0 auto;padding:14px 16px 24px}
 .rem svg{flex:none;width:15px;height:15px;margin-top:2px}
 .rem.music{background:var(--music-soft);color:var(--music)}
 .rem.alert{background:var(--alert-soft);color:var(--alert);font-weight:700}
+.ent.can-tick{padding-right:52px}
+.tick{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:2px solid var(--line);background:var(--surface);color:transparent;display:grid;place-items:center;cursor:pointer;padding:0}
+.tick svg{width:18px;height:18px}
+.tick:hover{border-color:var(--ok)}
+.tick.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.ent.done{opacity:.85}
+.blk.past .ent.done{opacity:1}
+.blk.past:has(.ent.done){opacity:.8}
+.ent.done .who,.ent.done .desc,.ent.done .rem>div{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:color-mix(in srgb,var(--ink) 60%,transparent)}
+.ent.done .badge{display:none}
+.donetag{display:inline-flex;margin-top:8px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--ok) 18%,var(--surface));color:var(--ok)}
 .badge{position:absolute;top:-9px;right:10px;font-size:10.5px;font-weight:800;letter-spacing:1px;padding:2px 8px;border-radius:999px}
 .blk.now .dot{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 22%,transparent)}
 .blk.now .ent{border-color:color-mix(in srgb,var(--accent) 60%,var(--line));border-left-color:var(--tint,var(--accent))}
@@ -528,6 +539,9 @@ function parse(){
   var cols=[]; for (var c=h.c;c<=m.C;c++) if(m.get(h.r,c).trim()) cols.push(c);
   var cT=cols[0], cW=cols[1]||cT+1, cD=cols[2]||cT+2, cE=cols[3]||cT+3;
   P.cols={t:cT,w:cW,d:cD,e:cE}; P.hdr=h.r;
+  var cDone=0; for (var cx=1;cx<=m.C;cx++) if(/^\s*(done|完成|✓|✔)\s*$/i.test(m.get(h.r,cx))) { cDone=cx; break; }
+  if(!cDone){ cDone=Math.max(cT,cW,cD,cE)+1; while(m.get(h.r,cDone).trim()) cDone++; }
+  P.cols.done=cDone; P.doneHdrEmpty=!m.get(h.r,cDone).trim();
   P.labels={t:m.get(h.r,cT),w:m.get(h.r,cW),d:m.get(h.r,cD),e:m.get(h.r,cE)};
 
   for (var r=1;r<h.r;r++){
@@ -551,7 +565,7 @@ function parse(){
       blk={time:t,r:r2,start:pr.start,end:pr.end,head:pr.head,tail:pr.tail,cards:[]}; sec.blocks.push(blk); card=null;
     } else if(!blk){ blk={time:'',r:r2,start:null,end:null,cards:[]}; sec.blocks.push(blk); card=null; }
     var tint=null; [cT,cW,cD].forEach(function(cc){ var b=m.bg(r2,cc); if(!tint && !isWhite(b) && !isRed(b) && !isYellow(b)) tint=hex(b); });
-    var row={r:r2,who:w,wCov:wCov,desc:d,rem:e,eCov:eCov,remRed:isRed(m.bg(r2,cE))||isRed(m.fc(r2,cE)),tint:tint};
+    var row={r:r2,who:w,wCov:wCov,desc:d,rem:e,eCov:eCov,remRed:isRed(m.bg(r2,cE))||isRed(m.fc(r2,cE)),tint:tint,done:m.get(r2,cDone)};
     var startsCard = !wCov && w.trim();
     if(startsCard || !card){ card={rows:[row],tint:tint,title:startsCard?w:''}; blk.cards.push(card); }
     else card.rows.push(row);
@@ -668,9 +682,12 @@ function blockHtml(P,b){
       html+= first ? inner : '<div class="sub">'+inner+'</div>';
       first=false;
     });
-    var tint=card.tint;
-    cards.push('<article class="ent'+(tint?' tinted':'')+'"'+(tint?' style="--tint:'+tint+'"':'')+'>'+
-      (cards.length===0 && (b.st==='now'||b.st==='next') ? '<span class="badge">'+(b.st==='now'?'NOW':'NEXT')+'</span>' : '')+html+'</article>');
+    var tint=card.tint, r0=card.rows[0], dv=state.tab==='rundown' && !ROWF ? isDone(r0.done) : '';
+    var canTick = !!(TICK && state.tab==='rundown' && !ROWF && TICK.blocks.indexOf(b)>=0);
+    if(dv) html+='<span class="donetag">'+esc(dv)+'</span>';
+    var tick = canTick ? '<button type="button" class="tick'+(dv?' on':'')+'" data-tick="'+r0.r+'" aria-label="'+(dv?'Mark as not done':'Mark as done')+'">'+I.check+'</button>' : '';
+    cards.push('<article class="ent'+(tint?' tinted':'')+(dv?' done':'')+(canTick?' can-tick':'')+'"'+(tint?' style="--tint:'+tint+'"':'')+'>'+
+      (cards.length===0 && (b.st==='now'||b.st==='next') ? '<span class="badge">'+(b.st==='now'?'NOW':'NEXT')+'</span>' : '')+tick+html+'</article>');
   });
   if(!cards.length) return '';
   var t='';
@@ -734,8 +751,28 @@ function nowHtml(P,S){
   h+='<div class="act"><button class="btn primary" type="button" data-jump="'+(S.current[0]?'b-'+S.current[0].r:S.next?'b-'+S.next.r:'')+'">Jump to now</button></div></div>';
   return h;
 }
+var TICK=null;
+function isDone(v){ v=String(v||'').trim(); if(!v || /^(no|n|false|-|未|未完成)$/i.test(v)) return ''; var tm=/(\d{1,2}:\d\d)/.exec(v); return '✓ Done'+(tm?' · '+tm[1]:''); }
+function toggleDone(r){
+  if(!P || !P.cols || !state.pin) return;
+  var si=P.si, c=P.cols.done, m=model(si), cur=m.get(r,c), was=!!isDone(cur);
+  var hm=hkClock(new Date()); if(state.fakeNow) hm=fmtMin(state.fakeNow.min);
+  var nv = was ? '' : '✓ '+hm, hdrEmpty=P.doneHdrEmpty, hdr=P.hdr;
+  applyLocal(si,r,c,nv); render(true);
+  if(!LIVE) return;
+  apiPost('saveCell', {sheetId:DATA.sheets[si].id,row:r,col:c,oldValue:cur,newValue:nv,pin:state.pin}, function(res){
+    if(res && res.ok){
+      DATA=res.data; cacheSet(DATA); state.lastSync=new Date(); state.online=true; render(true); toast(was?'Marked as not done':'Marked as done ✓');
+      if(hdrEmpty) apiPost('saveCell', {sheetId:DATA.sheets[si].id,row:hdr,col:c,oldValue:'',newValue:'Done',pin:state.pin}, function(r2){ if(r2 && r2.ok){ DATA=r2.data; cacheSet(DATA); } }, function(){});
+    }
+    else if(res && res.error==='conflict'){ DATA=res.data; render(true); toast('Someone just changed this. Showing the latest.',true); }
+    else if(res && res.error==='pin'){ applyLocal(si,r,c,cur); state.pin=''; ss('rd_pin',''); render(true); toast('Edit PIN needed',true); }
+    else { applyLocal(si,r,c,cur); render(true); toast('Could not save, please try again',true); }
+  }, function(){ applyLocal(si,r,c,cur); render(true); toast('No connection. Not saved yet.',true); });
+}
 function renderRundown(P){
   var S=statusOf(P), h='';
+  TICK = (LIVE && !GUEST && state.pin && P.event && S.today===P.event && P.cols && P.cols.done) ? {blocks:P.event.blocks} : null;
   h+=heroHtml(P,S)+nowHtml(P,S);
   h+='<div class="tools"><label class="search">'+I.search+'<input id="q" type="search" placeholder="Search people, tasks, songs…" value="'+esc(state.q)+'" autocomplete="off"></label></div>';
   h+='<div class="chips">'+P.sections.map(function(s){ return '<button type="button" class="chip" data-jump="s-'+s.r+'">'+esc(s.title||'Rundown')+'</button>'; }).join('')+'</div>';
@@ -1199,7 +1236,7 @@ var UI={
   'Pick your name once. This phone will remember it, and you’ll see only your steps, what to look after and your table.':'選一次你的名字，此手機會記住，之後只顯示你的環節、你負責的物品和你的座位。',
   'Couple & family':'新人及家人','Bridal party':'兄弟姊妹','MCs':'司儀','Vendors & helpers':'供應商及幫手','Guests':'賓客',
   'No match. Try another spelling, or pick your role above.':'找不到。請試另一個拼法，或在上面選你的角色。',
-  'First call':'最早集合','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
+  'First call':'最早集合','Mark as done':'標記為完成','Mark as not done':'取消完成','Marked as done ✓':'已標記完成 ✓','Marked as not done':'已取消完成','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
   'Your table':'你的座位','Open seating plan':'查看座位表','Your steps':'你的環節','Things you look after':'你負責的物品','Also for you':'也與你有關',
   'Only steps that mention you, your role or your group':'只顯示提及你、你的角色或組別的環節','Mentions you; someone else brings it':'提及你；由其他人負責帶',
   'Nothing in the rundown mentions you yet.':'流程中暫時未有提及你。',
@@ -1275,6 +1312,7 @@ var RULES=[
   [/^(\d+) items?$/, function(m){ return m[1]+' 項'; }],
   [/^Seat (\d+) of (\d+)$/, function(m){ return '第 '+m[1]+' 位（共 '+m[2]+' 位）'; }],
   [/^First call$/, function(m){ return '最早集合'; }],
+  [/^✓ Done(?: · (\d{1,2}:\d\d))?$/, function(m){ return '✓ 已完成'+(m[1]?' · '+m[1]:''); }],
   [/^([\d\/\-. ]+)\((\w+day)\)$/i, function(m){ var w=WDF[m[2].toLowerCase()]; return w ? m[1].trim()+'（'+w+'）' : undefined; }],
   [/^Table (\d+)(.*)$/i, function(m){ var r=m[2]; if(/[A-Za-z]/.test(r)){ var x=T(r.trim()); if(x==null) return null; r=' '+x; } return m[1]+'號枱'+r; }],
   [/^Today: (.+)$/, function(m){ return sub('今天：',m[1]); }],
@@ -1744,6 +1782,8 @@ document.addEventListener('click',function(ev){
     var cell=t.closest('[data-cell]');
     if(cell){ ev.preventDefault(); var p=cell.getAttribute('data-cell').split(':').map(Number); openEditor(p[0],p[1],p[2]); return; }
   }
+  var tk=t.closest('[data-tick]');
+  if(tk){ toggleDone(+tk.getAttribute('data-tick')); return; }
   var j=t.closest('[data-jump]');
   if(j){ var id=j.getAttribute('data-jump'); var el=id&&document.getElementById(id);
     if(el){ el.scrollIntoView({behavior:'smooth',block:'start'}); if(el.classList.contains('blk')){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); } } }
