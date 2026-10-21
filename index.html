@@ -246,6 +246,13 @@ mark{background:color-mix(in srgb,#ffd84d 70%,transparent);color:inherit;border-
 .inv-chip.on{background:var(--sc);border-color:var(--sc);color:#fff}
 .inv-chip.on i{background:#fff}.inv-chip.on b{color:#fff}
 .inv-chip.off{opacity:.5}
+.st-tools{flex-wrap:wrap;row-gap:8px;box-shadow:0 6px 10px -8px rgba(0,0,0,.18)}
+.st-tools .search{flex:1 1 100%}
+.inv-strip{display:flex;flex-wrap:wrap;gap:6px;width:100%}
+.inv-chip.sm{flex:none;padding:4px 10px 4px 8px;font-size:12px;gap:5px;white-space:nowrap}
+@media (max-width:520px){.inv-strip{display:grid;grid-template-columns:1fr 1fr;gap:5px}.inv-chip.sm{width:100%;min-width:0;padding:4px 8px 4px 7px}.inv-chip.sm span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}}
+.inv-chip.sm i{width:9px;height:9px}
+.inv-chip.sm b{font-size:13px}
 .inv-who{margin-top:12px;border-top:1px dashed var(--line);padding-top:8px;display:grid;gap:6px}
 .inv-row{font-size:14px;line-height:1.45}
 .inv-row b{display:block;font:600 14px var(--serif);color:var(--accent)}
@@ -1160,6 +1167,17 @@ function invCardHtml(si, tables){
   }
   return h+'</section>';
 }
+/* compact colour key that stays pinned under the search box while scrolling the tables */
+function invShort(label){ var s=String(label).replace(/^\s*invitations?\s+/i,'').replace(/^to be at\s+/i,'at ').trim(); return s ? s.charAt(0).toUpperCase()+s.slice(1) : label; }
+function invStripHtml(tables){
+  var L=tables.legend||[]; if(!L.length) return '';
+  var cnt={none:0}; L.forEach(function(x){ cnt[x.key]=0; }); tables.forEach(function(t){ t.guests.forEach(function(g){ cnt[invKey(g)]++; }); });
+  var opts=L.map(function(x){ return {key:x.key,label:invShort(x.label),full:x.label,color:x.color}; }); if(cnt.none) opts.push({key:'none',label:'No status',full:'No status',color:'var(--faint)'});
+  var sel=state.inv||'';
+  return '<div class="inv-strip" role="group" aria-label="Invitation colours">'+opts.map(function(o){
+    return '<button type="button" class="inv-chip sm'+(sel===o.key?' on':'')+(sel&&sel!==o.key?' off':'')+'" data-inv="'+o.key+'" title="'+esc(o.full)+'" style="--sc:'+o.color+'"><i></i><span>'+esc(o.label)+'</span><b>'+cnt[o.key]+'</b></button>';
+  }).join('')+'</div>';
+}
 function renderSeating(){
   var si=seatSheetIndex();
   if(si<0){ $('#main').innerHTML='<p class="empty">No seating plan yet. Add a sheet tab called “Seating Plan” in the spreadsheet and it will appear here.</p>'; return; }
@@ -1168,7 +1186,7 @@ function renderSeating(){
   var h='<div class="eyebrow" style="margin:4px 0 2px">'+esc(DATA.sheets[si].name)+'</div>';
   h+='<div class="st-top"><div class="info-title" style="margin:0">Seating</div><small>'+tables.length+' table'+(tables.length===1?'':'s')+' · '+total+' guests</small></div>';
   h+='<div id="inv-wrap">'+invCardHtml(si, tables)+'</div>';
-  h+='<div class="tools" style="top:57px"><label class="search">'+I.search+'<input id="sq" type="search" placeholder="Find a guest…" value="'+esc(state.sq||'')+'" autocomplete="off"></label></div>';
+  h+='<div class="tools st-tools" style="top:57px"><label class="search">'+I.search+'<input id="sq" type="search" placeholder="Find a guest…" value="'+esc(state.sq||'')+'" autocomplete="off"></label>'+invStripHtml(tables)+'</div>';
   h+='<div id="st-wrap">'+seatTablesHtml(si,tables)+'</div>';
   if(!tables.length) h+='<p class="empty">The seating plan sheet is empty.</p>';
   $('#main').innerHTML=h;
@@ -1313,7 +1331,7 @@ var UI={
   'Pick your name once. This phone will remember it, and you’ll see only your steps, what to look after and your table.':'選一次你的名字，此手機會記住，之後只顯示你的環節、你負責的物品和你的座位。',
   'Couple & family':'新人及家人','Bridal party':'兄弟姊妹','MCs':'司儀','Vendors & helpers':'供應商及幫手','Guests':'賓客',
   'No match. Try another spelling, or pick your role above.':'找不到。請試另一個拼法，或在上面選你的角色。',
-  'First call':'最早集合','Invitations':'請柬','No status':'未標示','Tap a colour to see who':'點擊顏色查看名單','Tap again to show all':'再點一次顯示全部','Nobody.':'沒有。','Invitation delivered':'已派請柬','Invitation to be delivered':'待派請柬','Invitation to be at reception':'請柬放於接待處','Mark as done':'標記為完成','Mark as not done':'取消完成','Marked as done ✓':'已標記完成 ✓','Marked as not done':'已取消完成','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
+  'First call':'最早集合','Invitations':'請柬','No status':'未標示','Tap a colour to see who':'點擊顏色查看名單','Tap again to show all':'再點一次顯示全部','Nobody.':'沒有。','Invitation delivered':'已派請柬','Delivered':'已派','To be delivered':'待派','At reception':'放接待處','Invitation colours':'請柬顏色','Invitation to be delivered':'待派請柬','Invitation to be at reception':'請柬放於接待處','Mark as done':'標記為完成','Mark as not done':'取消完成','Marked as done ✓':'已標記完成 ✓','Marked as not done':'已取消完成','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
   'Your table':'你的座位','Open seating plan':'查看座位表','Your steps':'你的環節','Things you look after':'你負責的物品','Also for you':'也與你有關',
   'Only steps that mention you, your role or your group':'只顯示提及你、你的角色或組別的環節','Mentions you; someone else brings it':'提及你；由其他人負責帶',
   'Nothing in the rundown mentions you yet.':'流程中暫時未有提及你。',
