@@ -472,12 +472,17 @@ function apiGet(ok, fail){
   fetch(API+'?api=data'+(GUEST?'&view=guest':'')+'&t='+Date.now(), {credentials:'omit', cache:'no-store'})
     .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).then(ok, fail);
 }
+function apiGetCi(sheetId, ok, fail){
+  if(HAS_GAS) return google.script.run.withSuccessHandler(ok).withFailureHandler(fail).getCheckins(sheetId);
+  fetch(API+'?api=ci&sheet='+sheetId+'&t='+Date.now(), {credentials:'omit', cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).then(ok, fail);
+}
 function apiPost(fn, req, ok, fail){
-  if(HAS_GAS){ var g=google.script.run.withSuccessHandler(ok).withFailureHandler(fail); return fn==='saveCell' ? g.saveCell(req) : g.checkPin(req.pin); }
-  var body={action: fn==='saveCell'?'save':'pin'}; for(var k in req) body[k]=req[k];
+  if(HAS_GAS){ var g=google.script.run.withSuccessHandler(ok).withFailureHandler(fail); return fn==='saveCell' ? g.saveCell(req) : fn==='checkin' ? g.checkin(req) : g.checkPin(req.pin); }
+  var body={action: fn==='saveCell'?'save':fn==='checkin'?'checkin':'pin'}; for(var k in req) body[k]=req[k];
   fetch(API, {method:'POST', credentials:'omit', body:JSON.stringify(body)})
     .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
-    .then(function(res){ ok(fn==='saveCell' ? res : !!(res && res.ok)); }, fail);
+    .then(function(res){ ok(fn==='pin' || fn==='checkPin' ? !!(res && res.ok) : res); }, fail);
 }
 var state = { tab:'rundown', edit:false, pin:'', q:'', sheet:0, lastSync:new Date(), online:true, editing:null, fakeNow:null };
 
@@ -1221,7 +1226,7 @@ function ciCtx(){
   var m=model(si), cN=ciCol(si), recs=ciRecords(m,cN), seen=ciSeen(si);
   return {si:si, cN:cN, recs:recs, get:function(g, table){
     var name=g.v.trim(), key=name+'|'+(table||'');
-    if(CIOV.hasOwnProperty(key)){ var o=ciParse(CIOV[key].v, 0); return o && o.st ? o : null; }
+    if(CIOV.hasOwnProperty(key)){ var ov=CIOV[key]; if(ov.n>0 || Date.now()<(ov.until||0)){ var o=ciParse(ov.v, 0); return o && o.st ? o : null; } }
     var rec=recs.byKey[key] || (seen[name]===1 && recs.byName[name] && recs.byName[name].length===1 ? recs.byName[name][0] : null);
     return rec && rec.st ? rec : null;
   }};
@@ -1235,17 +1240,78 @@ function ciFind(name, table){
 function ciSet(name, table, st){
   var key=name+'|'+table;
   var v = st ? [name, table, st==='gift'?'✓✓ Gift':'✓ No gift', hkClock(new Date())].join(' | ') : '';
-  CIOV[key]={v:v, n:(CIOV[key]?CIOV[key].n:0)+1};
+  CIOV[key]={v:v, n:(CIOV[key]?CIOV[key].n:0)+1, until:0};
   CIQ.push({key:key, name:name, table:table, v:v, tries:0});
   render(true); ciRun();
 }
 function ciDone(j){
-  CIQ.shift(); var ov=CIOV[j.key]; if(ov){ ov.n--; if(ov.n<=0) delete CIOV[j.key]; }
+  CIQ.shift(); ciRelease(j);
   ciBusy=false; render(true); ciRun();
 }
+var CI_FAST=true, ciActive=0, CI_GRACE=30000;
+function ciRelease(j){ var ov=CIOV[j.key]; if(ov){ ov.n--; if(ov.n<=0){ ov.n=0; ov.until=Date.now()+CI_GRACE; } } }
 function ciRun(){
-  if(ciBusy || !CIQ.length) return;
+  if(!CIQ.length) return;
   if(!state.pin){ CIQ=[]; CIOV={}; render(true); return; }
+  if(!CI_FAST){ ciRunSlow(); return; }
+  for(var i=0;i<CIQ.length && ciActive<4;i++){
+    var j=CIQ[i], first=true;
+    if(j.busy) continue;
+    for(var k=0;k<i;k++) if(CIQ[k].key===j.key){ first=false; break; }   /* same guest: keep taps in order */
+    if(first) ciSend(j);
+  }
+}
+function ciSend(j){
+  var si=seatSheetIndex(); if(si<0) return;
+  j.busy=true; ciActive++;
+  apiPost('checkin', {sheetId:DATA.sheets[si].id, name:j.name, table:j.table, value:j.v, unique:ciSeen(si)[j.name]===1, pin:state.pin}, function(res){
+    ciActive--; j.busy=false;
+    if(res && res.ok){
+      var s2=seatSheetIndex();
+      if(s2>=0 && !ciApplyCol(res)){ if(res.header) applyLocal(s2,1,res.col,res.header); if(res.row) applyLocal(s2,res.row,res.col,res.value); }
+      state.lastSync=new Date(); state.online=true; ciWarned=false; ciFinish(j);
+    }
+    else if(res && res.error==='unknown-action'){ CI_FAST=false; ciRun(); }      /* older server: fall back to the cell-by-cell save */
+    else if(res && res.error==='pin'){ state.pin=''; ss('rd_pin',''); CIQ=[]; CIOV={}; render(true); toast('Edit PIN needed',true); }
+    else { j.tries++; if(j.tries>4){ toast('Could not save check-in, please try again',true); ciFinish(j); } else setTimeout(ciRun, 1200); }
+  }, function(){
+    ciActive--; j.busy=false;
+    if(!ciWarned){ ciWarned=true; toast('No connection. Check-ins will save when back online.',true); }
+    setTimeout(ciRun, 4000);
+  });
+}
+/* the check-in column alone, newest copy wins (from a save or the 5-second admin poll) */
+var ciLastAt=0, ciPolling=false;
+function ciApplyCol(res){
+  ciApplyCol.changed=false;
+  if(!res || !res.ok || !res.values || !res.col || !DATA) return false;
+  var si=seatSheetIndex(); if(si<0 || DATA.sheets[si].id!==res.sheetId) return false;
+  if(res.at && res.at<ciLastAt) return true;
+  if(res.at) ciLastAt=res.at;
+  var sh=DATA.sheets[si], n=Math.max(res.values.length, sh.display.length), changed=false;
+  for(var r=1;r<=n;r++){
+    var v=res.values[r-1]||'', row=sh.display[r-1], cur=row ? String(row[res.col-1]==null?'':row[res.col-1]) : '';
+    if(cur!==v){ applyLocal(si,r,res.col,v); changed=true; }
+  }
+  ciApplyCol.changed=changed;
+  return true;
+}
+function ciPoll(){
+  if(ciPolling || !isAdmin() || state.tab!=='seating' || document.hidden || state.editing || state.syncing) return;
+  var si=seatSheetIndex(); if(si<0) return;
+  ciPolling=true;
+  apiGetCi(DATA.sheets[si].id, function(res){
+    ciPolling=false;
+    if(res && res.ok && res.col===0) return;
+    if(ciApplyCol(res) && ciApplyCol.changed){
+      var ae=document.activeElement; if(!(ae && /^(q|sq|mq|meq)$/.test(ae.id))) render(true);
+    }
+  }, function(){ ciPolling=false; });
+}
+setInterval(ciPoll, 5000);
+function ciFinish(j){ var i=CIQ.indexOf(j); if(i>=0) CIQ.splice(i,1); ciRelease(j); render(true); ciRun(); }
+function ciRunSlow(){
+  if(ciBusy || !CIQ.length) return;
   ciBusy=true;
   var j=CIQ[0], si=seatSheetIndex(), m=model(si), cN=ciCol(si), sid=DATA.sheets[si].id;
   var fail=function(){ ciBusy=false; if(!ciWarned){ ciWarned=true; toast('No connection. Check-ins will save when back online.',true); } setTimeout(ciRun, 5000); };
