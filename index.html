@@ -246,11 +246,26 @@ mark{background:color-mix(in srgb,#ffd84d 70%,transparent);color:inherit;border-
 .inv-chip.on{background:var(--sc);border-color:var(--sc);color:#fff}
 .inv-chip.on i{background:#fff}.inv-chip.on b{color:#fff}
 .inv-chip.off{opacity:.5}
+.ci-strip{display:flex;align-items:center;gap:6px;width:100%;flex-wrap:wrap}
+.ci-sub{font-size:12px;font-weight:700;color:var(--ok);margin-left:2px;white-space:nowrap}
+.ci-sub em{font-style:normal;color:var(--muted);font-weight:600}
+.st-svg g[data-ci],.st-list li[data-ci]{cursor:pointer}
+.st-svg g.ci .seat{opacity:.55}
+.st-svg g.ci .sname{opacity:.6}
+.st-svg .ci-x{stroke:var(--ink);stroke-width:2;stroke-linecap:round;opacity:.75}
+.st-svg .ci-b circle{fill:var(--surface);stroke:#2f8f4e;stroke-width:1.6}
+.st-svg .ci-b.g2 circle{fill:#2f8f4e}
+.st-svg .ci-b text{font:800 9.5px var(--sans);fill:#2f8f4e}
+.st-svg .ci-b.g2 text{fill:#fff}
+.st-list li.ci .gn{text-decoration:line-through;text-decoration-thickness:1.5px;opacity:.6}
+.ci-t{margin-left:auto;font-size:13px;color:#2f8f4e;letter-spacing:-1px;font-weight:800}
+.ci-sum{padding:12px 14px 14px;margin-top:6px}
+.ci-time{color:var(--muted);font-size:11px}
 .st-tools{flex-wrap:wrap;row-gap:8px;box-shadow:0 6px 10px -8px rgba(0,0,0,.18)}
 .st-tools .search{flex:1 1 100%}
 .inv-strip{display:flex;flex-wrap:wrap;gap:6px;width:100%}
 .inv-chip.sm{flex:none;padding:4px 10px 4px 8px;font-size:12px;gap:5px;white-space:nowrap}
-@media (max-width:520px){.inv-strip{display:grid;grid-template-columns:1fr 1fr;gap:5px}.inv-chip.sm{width:100%;min-width:0;padding:4px 8px 4px 7px}.inv-chip.sm span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}}
+@media (max-width:520px){.ci-strip{display:grid;grid-template-columns:1fr 1fr auto;gap:5px}.ci-strip .ci-sub{margin-left:2px}.inv-strip{display:grid;grid-template-columns:1fr 1fr;gap:5px}.inv-chip.sm{width:100%;min-width:0;padding:4px 8px 4px 7px}.inv-chip.sm span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}}
 .inv-chip.sm i{width:9px;height:9px}
 .inv-chip.sm b{font-size:13px}
 .inv-who{margin-top:12px;border-top:1px dashed var(--line);padding-top:8px;display:grid;gap:6px}
@@ -1103,7 +1118,8 @@ function parseSeating(si){
     var lm=LEGEND_RX.exec(m.get(r0,c0)), k0=lm&&lm[1].toLowerCase();
     if(lm && HUES.hasOwnProperty(k0) && !legend.some(function(L){ return L.key===k0; })){ legend.push({key:k0,label:lm[2],hue:HUES[k0],color:INV_SHOW[k0]||('hsl('+HUES[k0]+',62%,42%)'),r:r0,c:c0}); leg[r0+','+c0]=1; }
   }
-  var val=function(r,c){ return leg[r+','+c] ? '' : m.get(r,c); };
+  var ciC=0; for(var cc=1;cc<=m.C;cc++) if(CI_HDR.test(m.get(1,cc))){ ciC=cc; break; }
+  var val=function(r,c){ return (leg[r+','+c] || c===ciC) ? '' : m.get(r,c); };
   for(var r=1;r<=m.R;r++){
     var has=false; for(var c=1;c<=m.C;c++) if(!m.covered(r,c) && val(r,c).trim()){ has=true; break; }
     if(!has){ if(cur.length){ blocks.push(cur); cur=[]; } continue; }
@@ -1123,7 +1139,7 @@ function parseSeating(si){
   tables.legend=legend;
   return tables;
 }
-function seatSvg(t, si, mf){
+function seatSvg(t, si, mf, ci){
   var n=t.guests.length, W=340, C=W/2, R=n>14?136:128, rT=n>14?70:76;
   var sr=Math.max(14, Math.min(27, Math.PI*R/Math.max(n,1)-3));
   var title=t.title?t.title.v:'', words=title.split(/\s+/), l1=title, l2='';
@@ -1138,10 +1154,13 @@ function seatSvg(t, si, mf){
     var nm=g.v.trim(), len=0; for(var k=0;k<nm.length;k++) len+= nm.charCodeAt(k)>255?1.9:1;
     var fs=Math.max(8, Math.min(13, (sr*2-6)/Math.max(len,2)*1.75)), shown=nm;
     if(fs<=8 && len>9){ shown=nm.slice(0,6)+'…'; fs=8.5; }
-    var hit=mf && mf(g);
-    s+='<g class="'+(mf?(hit?'hit':'dim'):'')+'"'+cellAttr(si,g.r,g.c)+'><title>'+(i+1)+'. '+esc(nm)+(g.st?' · '+esc(g.st.label):'')+'</title>'+
+    var hit=mf && mf(g), cs=ci ? ci(g) : null;
+    s+='<g class="'+(mf?(hit?'hit':'dim'):'')+(cs?' ci':'')+'"'+cellAttr(si,g.r,g.c)+(ci?' data-ci="'+g.r+','+g.c+'"':'')+'><title>'+(i+1)+'. '+esc(nm)+(g.st?' · '+esc(g.st.label):'')+'</title>'+
        '<circle class="seat'+(g.st?' st':'')+'"'+(g.st?' style="--sc:'+g.st.color+'"':'')+' cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+sr.toFixed(1)+'"/>'+
-       '<text class="sname" x="'+x.toFixed(1)+'" y="'+(y+fs*0.36).toFixed(1)+'" text-anchor="middle" font-size="'+fs.toFixed(1)+'">'+esc(shown)+'</text></g>';
+       '<text class="sname" x="'+x.toFixed(1)+'" y="'+(y+fs*0.36).toFixed(1)+'" text-anchor="middle" font-size="'+fs.toFixed(1)+'">'+esc(shown)+'</text>'+
+       (cs ? '<line class="ci-x" x1="'+(x-sr+2).toFixed(1)+'" y1="'+y.toFixed(1)+'" x2="'+(x+sr-2).toFixed(1)+'" y2="'+y.toFixed(1)+'"/>'+
+             '<g class="ci-b'+(cs.st==='gift'?' g2':'')+'"><circle cx="'+(x+sr*0.72).toFixed(1)+'" cy="'+(y-sr*0.72).toFixed(1)+'" r="'+(cs.st==='gift'?10.5:8.5)+'"/>'+
+             '<text x="'+(x+sr*0.72).toFixed(1)+'" y="'+(y-sr*0.72+3.6).toFixed(1)+'" text-anchor="middle">'+(cs.st==='gift'?'✓✓':'✓')+'</text></g>' : '')+'</g>';
   });
   return s+'</svg>';
 }
@@ -1167,6 +1186,135 @@ function invCardHtml(si, tables){
   }
   return h+'</section>';
 }
+/* ── guest check-in (admins with the PIN only) ──
+   Stored as a log in the Seating Plan sheet, one cell per guest in the "Check-in" column:
+   "Name | Table | ✓✓ Gift | 11:42"  (✓ No gift = registered without a gift; empty cell = not registered) */
+var CI_HDR=/^\s*check-?\s*in/i, CIOV={}, CIQ=[], ciBusy=false, ciWarned=false;
+function isAdmin(){ return LIVE && !GUEST && !!state.pin; }
+function ciCol(si){
+  var m=model(si), mx=0;
+  for(var c=1;c<=m.C;c++){ if(CI_HDR.test(m.get(1,c))) return c; }
+  for(var r=1;r<=m.R;r++) for(var c2=1;c2<=m.C;c2++) if(m.get(r,c2).trim() && c2>mx) mx=c2;
+  return mx+2;
+}
+function ciSt(s){
+  s=String(s||'');
+  if(/✓\s*✓|✔\s*✔/.test(s) || (/gift/i.test(s) && !/no\s*gift/i.test(s))) return 'gift';
+  if(/✓|✔|no\s*gift|arrived|yes/i.test(s)) return 'nogift';
+  return null;
+}
+function ciParse(v, r){
+  v=String(v||'').trim(); if(!v) return null;
+  var p=v.split('|').map(function(x){ return x.trim(); });
+  return {r:r, name:p[0]||'', table:p[1]||'', st:ciSt(p[2]||''), time:p[3]||''};
+}
+function ciRecords(m, cN){
+  var byKey={}, byName={};
+  for(var r=2;r<=m.R;r++){
+    var rec=ciParse(m.get(r,cN), r); if(!rec || !rec.name) continue;
+    byKey[rec.name+'|'+rec.table]=rec; (byName[rec.name]=byName[rec.name]||[]).push(rec);
+  }
+  return {byKey:byKey, byName:byName};
+}
+function ciCtx(){
+  var si=seatSheetIndex(); if(si<0) return null;
+  var m=model(si), cN=ciCol(si), recs=ciRecords(m,cN), seen=ciSeen(si);
+  return {si:si, cN:cN, recs:recs, get:function(g, table){
+    var name=g.v.trim(), key=name+'|'+(table||'');
+    if(CIOV.hasOwnProperty(key)){ var o=ciParse(CIOV[key].v, 0); return o && o.st ? o : null; }
+    var rec=recs.byKey[key] || (seen[name]===1 && recs.byName[name] && recs.byName[name].length===1 ? recs.byName[name][0] : null);
+    return rec && rec.st ? rec : null;
+  }};
+}
+/* a name-only match (e.g. after a table is renamed) is allowed only when that name is unique on the seating plan */
+function ciSeen(si){ var seen={}; parseSeating(si).forEach(function(t){ t.guests.forEach(function(g){ var n=g.v.trim(); seen[n]=(seen[n]||0)+1; }); }); return seen; }
+function ciFind(name, table){
+  var si=seatSheetIndex(), m=model(si), cN=ciCol(si), recs=ciRecords(m,cN), seen=ciSeen(si);
+  return recs.byKey[name+'|'+table] || (seen[name]===1 && recs.byName[name] && recs.byName[name].length===1 ? recs.byName[name][0] : null);
+}
+function ciSet(name, table, st){
+  var key=name+'|'+table;
+  var v = st ? [name, table, st==='gift'?'✓✓ Gift':'✓ No gift', hkClock(new Date())].join(' | ') : '';
+  CIOV[key]={v:v, n:(CIOV[key]?CIOV[key].n:0)+1};
+  CIQ.push({key:key, name:name, table:table, v:v, tries:0});
+  render(true); ciRun();
+}
+function ciDone(j){
+  CIQ.shift(); var ov=CIOV[j.key]; if(ov){ ov.n--; if(ov.n<=0) delete CIOV[j.key]; }
+  ciBusy=false; render(true); ciRun();
+}
+function ciRun(){
+  if(ciBusy || !CIQ.length) return;
+  if(!state.pin){ CIQ=[]; CIOV={}; render(true); return; }
+  ciBusy=true;
+  var j=CIQ[0], si=seatSheetIndex(), m=model(si), cN=ciCol(si), sid=DATA.sheets[si].id;
+  var fail=function(){ ciBusy=false; if(!ciWarned){ ciWarned=true; toast('No connection. Check-ins will save when back online.',true); } setTimeout(ciRun, 5000); };
+  var handle=function(res, onOk){
+    if(res && res.ok){ DATA=res.data; cacheSet(DATA); state.lastSync=new Date(); state.online=true; ciWarned=false; onOk(); }
+    else if(res && res.error==='conflict'){ DATA=res.data; j.tries++; ciBusy=false; if(j.tries>20){ toast('Could not save check-in, please try again',true); ciDone(j); } else ciRun(); }
+    else if(res && res.error==='pin'){ state.pin=''; ss('rd_pin',''); CIQ=[]; CIOV={}; ciBusy=false; render(true); toast('Edit PIN needed',true); }
+    else { ciBusy=false; toast('Could not save check-in, please try again',true); ciDone(j); }
+  };
+  if(!CI_HDR.test(m.get(1,cN))){
+    apiPost('saveCell', {sheetId:sid,row:1,col:cN,oldValue:m.get(1,cN),newValue:'Check-in (app): Guest | Table | Status | Time',pin:state.pin},
+      function(res){ handle(res, function(){ ciBusy=false; ciRun(); }); }, fail);
+    return;
+  }
+  var rec=ciFind(j.name, j.table), row, old;
+  if(rec){ row=rec.r; old=m.get(row,cN); }
+  else { if(!j.v){ ciDone(j); return; } row=2; while(m.get(row,cN).trim()) row++; old=''; }
+  if(old===j.v){ ciDone(j); return; }
+  apiPost('saveCell', {sheetId:sid,row:row,col:cN,oldValue:old,newValue:j.v,pin:state.pin},
+    function(res){ handle(res, function(){ ciDone(j); }); }, fail);
+}
+function openCi(r, c){
+  var si=seatSheetIndex(); if(si<0) return;
+  var tables=parseSeating(si), hit=null, ttl='';
+  tables.forEach(function(t){ t.guests.forEach(function(g){ if(g.r===r && g.c===c){ hit=g; ttl=t.title?t.title.v:''; } }); });
+  if(!hit) return;
+  var name=hit.v.trim(), cur=ciCtx().get(hit, ttl);
+  state.ciPick={name:name, table:ttl};
+  var head='<div class="mh"><b>'+esc(name)+'</b><span>'+esc(ttl||'Table')+'</span></div>';
+  if(!cur){
+    openModal(head+'<p>Register arrival. Did the guest bring a gift?</p><div class="st-opts">'+
+      '<button type="button" class="btn primary" data-act="ci-gift">✓✓ Yes, brought a gift</button>'+
+      '<button type="button" class="btn" data-act="ci-nogift">✓ No gift</button></div>'+
+      '<div class="ma"><button type="button" class="btn ghost" data-act="cancel">Cancel</button></div>');
+  } else {
+    openModal(head+'<p><span>Registered</span>'+(cur.time?' · '+esc(cur.time):'')+' · <span>'+(cur.st==='gift'?'Brought a gift':'No gift')+'</span> '+(cur.st==='gift'?'✓✓':'✓')+'</p>'+
+      '<p>Unregister this guest?</p><div class="st-opts"><button type="button" class="btn primary" data-act="ci-undo">Yes, unregister</button></div>'+
+      '<div class="ma"><button type="button" class="btn ghost" data-act="cancel">Cancel</button></div>');
+  }
+}
+function ciPicked(st){
+  var p=state.ciPick; closeModal(); if(!p) return;
+  ciSet(p.name, p.table, st);
+  toast(st==='gift' ? 'Registered ✓✓' : st==='nogift' ? 'Registered ✓' : 'Unregistered');
+}
+function ciAll(tables, CI){
+  var all=[]; tables.forEach(function(t){ var ttl=t.title?t.title.v:''; t.guests.forEach(function(g){ all.push({g:g, table:ttl, ci:CI.get(g,ttl)}); }); });
+  return all;
+}
+function ciStripHtml(tables){
+  var CI=ciCtx(); if(!CI) return '';
+  var all=ciAll(tables, CI), reg=all.filter(function(x){ return x.ci; }), gift=reg.filter(function(x){ return x.ci.st==='gift'; }).length;
+  var sel=state.ciF||'';
+  return '<div class="ci-strip">'+
+    '<button type="button" class="inv-chip sm'+(sel==='in'?' on':'')+(sel&&sel!=='in'?' off':'')+'" data-cif="in" style="--sc:#2f8f4e"><i></i><span>Registered</span><b>'+reg.length+'</b></button>'+
+    '<button type="button" class="inv-chip sm'+(sel==='out'?' on':'')+(sel&&sel!=='out'?' off':'')+'" data-cif="out" style="--sc:#8a7f86"><i></i><span>Not registered</span><b>'+(all.length-reg.length)+'</b></button>'+
+    '<span class="ci-sub">✓✓ '+gift+' · ✓ '+(reg.length-gift)+(CIQ.length?' · <em>saving…</em>':'')+'</span></div>';
+}
+function ciSummaryHtml(tables){
+  var CI=ciCtx(); if(!CI) return '';
+  var no=ciAll(tables, CI).filter(function(x){ return x.ci && x.ci.st==='nogift'; });
+  var h='<section class="card ci-sum"><div class="inv-h"><h3>No gift</h3><small>Registered with a single tick ✓ · '+no.length+'</small></div>';
+  if(!no.length) return h+'<p class="note-s" style="margin:0">Everyone registered so far brought a gift.</p></section>';
+  var byT={}, order=[]; no.forEach(function(x){ if(!byT[x.table]){ byT[x.table]=[]; order.push(x.table); } byT[x.table].push(x); });
+  return h+'<div class="inv-who" style="border:0;margin:0;padding:0">'+order.map(function(t){
+    return '<div class="inv-row"><b>'+esc(t||'Table')+'</b><span>'+byT[t].map(function(x){ return '<span class="inv-nm">'+esc(x.g.v.trim())+'</span> ✓'+(x.ci.time?' <small class="ci-time">'+esc(x.ci.time)+'</small>':''); }).join(', ')+'</span></div>';
+  }).join('')+'</div></section>';
+}
+
 /* compact colour key that stays pinned under the search box while scrolling the tables */
 function invShort(label){ var s=String(label).replace(/^\s*invitations?\s+/i,'').replace(/^to be at\s+/i,'at ').trim(); return s ? s.charAt(0).toUpperCase()+s.slice(1) : label; }
 function invStripHtml(tables){
@@ -1186,24 +1334,27 @@ function renderSeating(){
   var h='<div class="eyebrow" style="margin:4px 0 2px">'+esc(DATA.sheets[si].name)+'</div>';
   h+='<div class="st-top"><div class="info-title" style="margin:0">Seating</div><small>'+tables.length+' table'+(tables.length===1?'':'s')+' · '+total+' guests</small></div>';
   h+='<div id="inv-wrap">'+invCardHtml(si, tables)+'</div>';
-  h+='<div class="tools st-tools" style="top:57px"><label class="search">'+I.search+'<input id="sq" type="search" placeholder="Find a guest…" value="'+esc(state.sq||'')+'" autocomplete="off"></label>'+invStripHtml(tables)+'</div>';
+  h+='<div class="tools st-tools" style="top:57px"><label class="search">'+I.search+'<input id="sq" type="search" placeholder="Find a guest…" value="'+esc(state.sq||'')+'" autocomplete="off"></label>'+(isAdmin()?ciStripHtml(tables):'')+invStripHtml(tables)+'</div>';
   h+='<div id="st-wrap">'+seatTablesHtml(si,tables)+'</div>';
   if(!tables.length) h+='<p class="empty">The seating plan sheet is empty.</p>';
+  else if(isAdmin()) h+=ciSummaryHtml(tables);
   $('#main').innerHTML=h;
 }
 function seatTablesHtml(si,tables){
   var q=(state.sq||'').trim().toLowerCase(), inv=state.inv||'', L=tables.legend||[];
-  var mf = (q||inv) ? function(g){ return (!q || g.v.toLowerCase().indexOf(q)>=0) && (!inv || invKey(g)===inv); } : null;
+  var CI=isAdmin() ? ciCtx() : null, cif=CI ? (state.ciF||'') : '';
   return tables.map(function(t){
     var title=t.title?t.title.v:'', tt='', tl='';
+    var ci = CI ? function(g){ return CI.get(g, title); } : null;
+    var mf = (q||inv||cif) ? function(g){ return (!q || g.v.toLowerCase().indexOf(q)>=0) && (!inv || invKey(g)===inv) && (!cif || (cif==='in')===!!ci(g)); } : null;
     if(/groom|男家|新郎/i.test(title)){ tt='#c9efeb'; tl='#0abab5'; } else if(/bride|女家|新娘/i.test(title)){ tt='#fcdbe4'; tl='#e27a98'; }
     var any=!mf || t.guests.some(mf);
     var mini = L.length ? '<span class="inv-mini">'+L.map(function(x){ var n=t.guests.filter(function(g){ return invKey(g)===x.key; }).length; return n ? '<span title="'+esc(x.label)+'"><i style="--sc:'+x.color+'"></i>'+n+'</span>' : ''; }).join('')+'</span>' : '';
     return '<section class="st-card'+(any?'':' nohit')+'"'+(tt?' style="--tt:'+tt+';--tt-line:'+tl+'"':'')+'>'+
       '<div class="st-h"><h3'+(t.title?cellAttr(si,t.title.r,t.title.c):'')+'>'+esc(title||'Table')+'</h3><small>'+mini+t.guests.length+' seats</small></div>'+
-      (t.guests.length ? seatSvg(t,si,mf) : '<p class="note-s" style="padding:4px 16px 14px;margin:0">No guests assigned yet.</p>')+
-      '<ol class="st-list">'+t.guests.map(function(g){ var hit=mf && mf(g);
-        return '<li class="'+(hit?'hit':'')+'"'+cellAttr(si,g.r,g.c)+'>'+(g.st?'<i class="inv-dot" style="--sc:'+g.st.color+'" title="'+esc(g.st.label)+'"></i>':(L.length?'<i class="inv-dot none"></i>':''))+'<span>'+esc(g.v)+'</span></li>'; }).join('')+'</ol>'+
+      (t.guests.length ? seatSvg(t,si,mf,ci) : '<p class="note-s" style="padding:4px 16px 14px;margin:0">No guests assigned yet.</p>')+
+      '<ol class="st-list">'+t.guests.map(function(g){ var hit=mf && mf(g), cs=ci ? ci(g) : null;
+        return '<li class="'+(hit?'hit':'')+(cs?' ci':'')+'"'+cellAttr(si,g.r,g.c)+(ci?' data-ci="'+g.r+','+g.c+'"':'')+'>'+(g.st?'<i class="inv-dot" style="--sc:'+g.st.color+'" title="'+esc(g.st.label)+'"></i>':(L.length?'<i class="inv-dot none"></i>':''))+'<span class="gn">'+esc(g.v)+'</span>'+(cs?'<b class="ci-t'+(cs.st==='gift'?' g2':'')+'" title="'+(cs.st==='gift'?'Brought a gift':'No gift')+'">'+(cs.st==='gift'?'✓✓':'✓')+'</b>':'')+'</li>'; }).join('')+'</ol>'+
       '</section>';
   }).join('');
 }
@@ -1331,7 +1482,7 @@ var UI={
   'Pick your name once. This phone will remember it, and you’ll see only your steps, what to look after and your table.':'選一次你的名字，此手機會記住，之後只顯示你的環節、你負責的物品和你的座位。',
   'Couple & family':'新人及家人','Bridal party':'兄弟姊妹','MCs':'司儀','Vendors & helpers':'供應商及幫手','Guests':'賓客',
   'No match. Try another spelling, or pick your role above.':'找不到。請試另一個拼法，或在上面選你的角色。',
-  'First call':'最早集合','Invitations':'請柬','No status':'未標示','Tap a colour to see who':'點擊顏色查看名單','Tap again to show all':'再點一次顯示全部','Nobody.':'沒有。','Invitation delivered':'已派請柬','Delivered':'已派','To be delivered':'待派','At reception':'放接待處','Invitation colours':'請柬顏色','Invitation to be delivered':'待派請柬','Invitation to be at reception':'請柬放於接待處','Mark as done':'標記為完成','Mark as not done':'取消完成','Marked as done ✓':'已標記完成 ✓','Marked as not done':'已取消完成','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
+  'First call':'最早集合','Invitations':'請柬','No status':'未標示','Tap a colour to see who':'點擊顏色查看名單','Tap again to show all':'再點一次顯示全部','Nobody.':'沒有。','Registered':'已登記','Not registered':'未登記','Register arrival. Did the guest bring a gift?':'登記到場。賓客有否帶禮物？','✓✓ Yes, brought a gift':'✓✓ 有，帶了禮物','✓ No gift':'✓ 沒有禮物','Unregister this guest?':'取消此賓客的登記？','Yes, unregister':'是，取消登記','Brought a gift':'有帶禮物','No gift':'沒有禮物','Registered ✓✓':'已登記 ✓✓','Registered ✓':'已登記 ✓','Unregistered':'已取消登記','Everyone registered so far brought a gift.':'目前已登記的賓客全部有帶禮物。','saving…':'儲存中…','No connection. Check-ins will save when back online.':'沒有網絡連線，恢復連線後會自動儲存登記。','Could not save check-in, please try again':'未能儲存登記，請再試一次','Invitation delivered':'已派請柬','Delivered':'已派','To be delivered':'待派','At reception':'放接待處','Invitation colours':'請柬顏色','Invitation to be delivered':'待派請柬','Invitation to be at reception':'請柬放於接待處','Mark as done':'標記為完成','Mark as not done':'取消完成','Marked as done ✓':'已標記完成 ✓','Marked as not done':'已取消完成','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
   'Your table':'你的座位','Open seating plan':'查看座位表','Your steps':'你的環節','Things you look after':'你負責的物品','Also for you':'也與你有關',
   'Only steps that mention you, your role or your group':'只顯示提及你、你的角色或組別的環節','Mentions you; someone else brings it':'提及你；由其他人負責帶',
   'Nothing in the rundown mentions you yet.':'流程中暫時未有提及你。',
@@ -1407,6 +1558,7 @@ var RULES=[
   [/^(\d+) items?$/, function(m){ return m[1]+' 項'; }],
   [/^Seat (\d+) of (\d+)$/, function(m){ return '第 '+m[1]+' 位（共 '+m[2]+' 位）'; }],
   [/^First call$/, function(m){ return '最早集合'; }],
+  [/^Registered with a single tick ✓ · (\d+)$/, function(m){ return '已登記但只有一個 ✓ · '+m[1]; }],
   [/^✓ Done(?: · (\d{1,2}:\d\d))?$/, function(m){ return '✓ 已完成'+(m[1]?' · '+m[1]:''); }],
   [/^([\d\/\-. ]+)\((\w+day)\)$/i, function(m){ var w=WDF[m[2].toLowerCase()]; return w ? m[1].trim()+'（'+w+'）' : undefined; }],
   [/^Table (\d+)(.*)$/i, function(m){ var r=m[2]; if(/[A-Za-z]/.test(r)){ var x=T(r.trim()); if(x==null) return null; r=' '+x; } return m[1]+'號枱'+r; }],
@@ -1844,7 +1996,7 @@ function submitPin(){
 document.addEventListener('click',function(ev){
   var t=ev.target;
   var act=t.closest('[data-act]');
-  if(act){ var a=act.getAttribute('data-act'); if(a==='cancel') closeModal(); else if(a==='save') save(); else if(a==='pin') submitPin(); else if(a==='st') pickStatus(act.getAttribute('data-v')); return; }
+  if(act){ var a=act.getAttribute('data-act'); if(a==='cancel') closeModal(); else if(a==='save') save(); else if(a==='pin') submitPin(); else if(a==='st') pickStatus(act.getAttribute('data-v')); else if(a==='ci-gift') ciPicked('gift'); else if(a==='ci-nogift') ciPicked('nogift'); else if(a==='ci-undo') ciPicked(''); return; }
   if(t.id==='back'){ closeModal(); return; }
   var lg=t.closest('[data-lang]'); if(lg){ setLang(lg.getAttribute('data-lang')); return; }
   if(t.closest('#themeBtn')){
@@ -1875,6 +2027,8 @@ document.addEventListener('click',function(ev){
     if(mtb.hasAttribute('data-mtwho')) state.mt.who=!state.mt.who;
     render(true); return;
   }
+  var cif=t.closest('[data-cif]'); if(cif){ var cv=cif.getAttribute('data-cif'); state.ciF = state.ciF===cv ? '' : cv; render(true); return; }
+  var cig=t.closest('[data-ci]'); if(cig && !state.edit && isAdmin()){ var rc=cig.getAttribute('data-ci').split(','); openCi(+rc[0], +rc[1]); return; }
   if(state.edit){
     var cell=t.closest('[data-cell]');
     if(cell){ ev.preventDefault(); var p=cell.getAttribute('data-cell').split(':').map(Number); openEditor(p[0],p[1],p[2]); return; }
