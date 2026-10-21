@@ -265,7 +265,7 @@ mark{background:color-mix(in srgb,#ffd84d 70%,transparent);color:inherit;border-
 .st-tools .search{flex:1 1 100%}
 .inv-strip{display:flex;flex-wrap:wrap;gap:6px;width:100%}
 .inv-chip.sm{flex:none;padding:4px 10px 4px 8px;font-size:12px;gap:5px;white-space:nowrap}
-@media (max-width:520px){.ci-strip{display:grid;grid-template-columns:1fr 1fr auto;gap:5px}.ci-strip .ci-sub{margin-left:2px}.inv-strip{display:grid;grid-template-columns:1fr 1fr;gap:5px}.inv-chip.sm{width:100%;min-width:0;padding:4px 8px 4px 7px}.inv-chip.sm span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}}
+@media (max-width:520px){.ci-strip{display:grid;grid-template-columns:1fr 1fr;gap:5px}.ci-strip .ci-sub{grid-column:1/-1;margin-left:2px}.inv-strip{display:grid;grid-template-columns:1fr 1fr;gap:5px}.inv-chip.sm{width:100%;min-width:0;padding:4px 8px 4px 7px}.inv-chip.sm span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}}
 .inv-chip.sm i{width:9px;height:9px}
 .inv-chip.sm b{font-size:13px}
 .inv-who{margin-top:12px;border-top:1px dashed var(--line);padding-top:8px;display:grid;gap:6px}
@@ -1302,7 +1302,7 @@ function ciStripHtml(tables){
   return '<div class="ci-strip">'+
     '<button type="button" class="inv-chip sm'+(sel==='in'?' on':'')+(sel&&sel!=='in'?' off':'')+'" data-cif="in" style="--sc:#2f8f4e"><i></i><span>Registered</span><b>'+reg.length+'</b></button>'+
     '<button type="button" class="inv-chip sm'+(sel==='out'?' on':'')+(sel&&sel!=='out'?' off':'')+'" data-cif="out" style="--sc:#8a7f86"><i></i><span>Not registered</span><b>'+(all.length-reg.length)+'</b></button>'+
-    '<span class="ci-sub">✓✓ '+gift+' · ✓ '+(reg.length-gift)+(CIQ.length?' · <em>saving…</em>':'')+'</span></div>';
+    '<span class="ci-sub">✓✓ <span>Have gift</span> '+gift+' · ✓ <span>No gift</span> '+(reg.length-gift)+(CIQ.length?' · <em>saving…</em>':'')+'</span></div>';
 }
 function ciSummaryHtml(tables){
   var CI=ciCtx(); if(!CI) return '';
@@ -1482,7 +1482,7 @@ var UI={
   'Pick your name once. This phone will remember it, and you’ll see only your steps, what to look after and your table.':'選一次你的名字，此手機會記住，之後只顯示你的環節、你負責的物品和你的座位。',
   'Couple & family':'新人及家人','Bridal party':'兄弟姊妹','MCs':'司儀','Vendors & helpers':'供應商及幫手','Guests':'賓客',
   'No match. Try another spelling, or pick your role above.':'找不到。請試另一個拼法，或在上面選你的角色。',
-  'First call':'最早集合','Invitations':'請柬','No status':'未標示','Tap a colour to see who':'點擊顏色查看名單','Tap again to show all':'再點一次顯示全部','Nobody.':'沒有。','Registered':'已登記','Not registered':'未登記','Register arrival. Did the guest bring a gift?':'登記到場。賓客有否帶禮物？','✓✓ Yes, brought a gift':'✓✓ 有，帶了禮物','✓ No gift':'✓ 沒有禮物','Unregister this guest?':'取消此賓客的登記？','Yes, unregister':'是，取消登記','Brought a gift':'有帶禮物','No gift':'沒有禮物','Registered ✓✓':'已登記 ✓✓','Registered ✓':'已登記 ✓','Unregistered':'已取消登記','Everyone registered so far brought a gift.':'目前已登記的賓客全部有帶禮物。','saving…':'儲存中…','No connection. Check-ins will save when back online.':'沒有網絡連線，恢復連線後會自動儲存登記。','Could not save check-in, please try again':'未能儲存登記，請再試一次','Invitation delivered':'已派請柬','Delivered':'已派','To be delivered':'待派','At reception':'放接待處','Invitation colours':'請柬顏色','Invitation to be delivered':'待派請柬','Invitation to be at reception':'請柬放於接待處','Mark as done':'標記為完成','Mark as not done':'取消完成','Marked as done ✓':'已標記完成 ✓','Marked as not done':'已取消完成','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
+  'First call':'最早集合','Invitations':'請柬','No status':'未標示','Tap a colour to see who':'點擊顏色查看名單','Tap again to show all':'再點一次顯示全部','Nobody.':'沒有。','Registered':'已登記','Not registered':'未登記','Register arrival. Did the guest bring a gift?':'登記到場。賓客有否帶禮物？','✓✓ Yes, brought a gift':'✓✓ 有，帶了禮物','✓ No gift':'✓ 沒有禮物','Unregister this guest?':'取消此賓客的登記？','Yes, unregister':'是，取消登記','Brought a gift':'有帶禮物','Have gift':'有禮物','No gift':'沒有禮物','Registered ✓✓':'已登記 ✓✓','Registered ✓':'已登記 ✓','Unregistered':'已取消登記','Everyone registered so far brought a gift.':'目前已登記的賓客全部有帶禮物。','saving…':'儲存中…','No connection. Check-ins will save when back online.':'沒有網絡連線，恢復連線後會自動儲存登記。','Could not save check-in, please try again':'未能儲存登記，請再試一次','Invitation delivered':'已派請柬','Delivered':'已派','To be delivered':'待派','At reception':'放接待處','Invitation colours':'請柬顏色','Invitation to be delivered':'待派請柬','Invitation to be at reception':'請柬放於接待處','Mark as done':'標記為完成','Mark as not done':'取消完成','Marked as done ✓':'已標記完成 ✓','Marked as not done':'已取消完成','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
   'Your table':'你的座位','Open seating plan':'查看座位表','Your steps':'你的環節','Things you look after':'你負責的物品','Also for you':'也與你有關',
   'Only steps that mention you, your role or your group':'只顯示提及你、你的角色或組別的環節','Mentions you; someone else brings it':'提及你；由其他人負責帶',
   'Nothing in the rundown mentions you yet.':'流程中暫時未有提及你。',
