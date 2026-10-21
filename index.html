@@ -370,6 +370,8 @@ html[lang^="zh"] .rolezh{display:none}
 .chip.mep small{font-size:11px;color:var(--muted)}
 mark.me-mk{background:color-mix(in srgb,var(--tiffany) 45%,transparent);color:inherit;border-radius:4px;padding:0 2px;font-weight:600}
 .st-opts{display:grid;gap:8px;margin-top:4px}
+.ci-pick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.ci-pick .btn{font-size:30px;font-weight:800;padding:18px 0;letter-spacing:-3px;justify-content:center}
 .st-opts .btn{justify-content:center;min-height:46px;font-size:15px}
 @media (max-width:400px){.mt-k b{font-size:21px}.mt-pr{padding:9px 12px}}
 
@@ -1342,12 +1344,12 @@ function openCi(r, c){
   state.ciPick={name:name, table:ttl};
   var head='<div class="mh"><b>'+esc(name)+'</b><span>'+esc(ttl||'Table')+'</span></div>';
   if(!cur){
-    openModal(head+'<p>Register arrival. Did the guest bring a gift?</p><div class="st-opts">'+
-      '<button type="button" class="btn primary" data-act="ci-gift">✓✓ Yes, brought a gift</button>'+
-      '<button type="button" class="btn" data-act="ci-nogift">✓ No gift</button></div>'+
+    openModal(head+'<div class="ci-pick">'+
+      '<button type="button" class="btn primary" data-act="ci-gift">✓✓</button>'+
+      '<button type="button" class="btn" data-act="ci-nogift">✓</button></div>'+
       '<div class="ma"><button type="button" class="btn ghost" data-act="cancel">Cancel</button></div>');
   } else {
-    openModal(head+'<p><span>Registered</span>'+(cur.time?' · '+esc(cur.time):'')+' · <span>'+(cur.st==='gift'?'Brought a gift':'No gift')+'</span> '+(cur.st==='gift'?'✓✓':'✓')+'</p>'+
+    openModal(head+'<p><span>Registered</span>'+(cur.time?' · '+esc(cur.time):'')+' · '+(cur.st==='gift'?'✓✓':'✓')+'</p>'+
       '<p>Unregister this guest?</p><div class="st-opts"><button type="button" class="btn primary" data-act="ci-undo">Yes, unregister</button></div>'+
       '<div class="ma"><button type="button" class="btn ghost" data-act="cancel">Cancel</button></div>');
   }
@@ -1368,7 +1370,7 @@ function ciStripHtml(tables){
   return '<div class="ci-strip">'+
     '<button type="button" class="inv-chip sm'+(sel==='in'?' on':'')+(sel&&sel!=='in'?' off':'')+'" data-cif="in" style="--sc:#2f8f4e"><i></i><span>Registered</span><b>'+reg.length+'</b></button>'+
     '<button type="button" class="inv-chip sm'+(sel==='out'?' on':'')+(sel&&sel!=='out'?' off':'')+'" data-cif="out" style="--sc:#8a7f86"><i></i><span>Not registered</span><b>'+(all.length-reg.length)+'</b></button>'+
-    '<span class="ci-sub">✓✓ <span>Have gift</span> '+gift+' · ✓ <span>No gift</span> '+(reg.length-gift)+(CIQ.length?' · <em>saving…</em>':'')+'</span></div>';
+    '<span class="ci-sub">✓✓ '+gift+' · ✓ '+(reg.length-gift)+(CIQ.length?' · <em>saving…</em>':'')+'</span></div>';
 }
 function ciSummaryHtml(tables){
   var CI=ciCtx(); if(!CI) return '';
@@ -1419,7 +1421,7 @@ function seatTablesHtml(si,tables){
       '<div class="st-h"><h3'+(t.title?cellAttr(si,t.title.r,t.title.c):'')+'>'+esc(title||'Table')+'</h3><small>'+mini+t.guests.length+' seats</small></div>'+
       (t.guests.length ? seatSvg(t,si,mf,ci) : '<p class="note-s" style="padding:4px 16px 14px;margin:0">No guests assigned yet.</p>')+
       '<ol class="st-list">'+t.guests.map(function(g){ var hit=mf && mf(g), cs=ci ? ci(g) : null;
-        return '<li class="'+(hit?'hit':'')+(cs?' ci':'')+'"'+cellAttr(si,g.r,g.c)+(ci?' data-ci="'+g.r+','+g.c+'"':'')+'>'+(g.st?'<i class="inv-dot" style="--sc:'+g.st.color+'" title="'+esc(g.st.label)+'"></i>':(L.length?'<i class="inv-dot none"></i>':''))+'<span class="gn">'+esc(g.v)+'</span>'+(cs?'<b class="ci-t'+(cs.st==='gift'?' g2':'')+'" title="'+(cs.st==='gift'?'Brought a gift':'No gift')+'">'+(cs.st==='gift'?'✓✓':'✓')+'</b>':'')+'</li>'; }).join('')+'</ol>'+
+        return '<li class="'+(hit?'hit':'')+(cs?' ci':'')+'"'+cellAttr(si,g.r,g.c)+(ci?' data-ci="'+g.r+','+g.c+'"':'')+'>'+(g.st?'<i class="inv-dot" style="--sc:'+g.st.color+'" title="'+esc(g.st.label)+'"></i>':(L.length?'<i class="inv-dot none"></i>':''))+'<span class="gn">'+esc(g.v)+'</span>'+(cs?'<b class="ci-t'+(cs.st==='gift'?' g2':'')+'">'+(cs.st==='gift'?'✓✓':'✓')+'</b>':'')+'</li>'; }).join('')+'</ol>'+
       '</section>';
   }).join('');
 }
