@@ -232,6 +232,30 @@ mark{background:color-mix(in srgb,#ffd84d 70%,transparent);color:inherit;border-
 .st-list li:before{counter-increment:seat;content:counter(seat);min-width:18px;color:var(--muted);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
 .st-list li.hit{background:color-mix(in srgb,var(--gold) 22%,transparent);border-radius:8px}
 .st-card.nohit{opacity:.45}
+/* invitation status */
+.inv-card{padding:12px 14px 14px}
+.inv-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+.inv-h h3{margin:0;font:600 19px/1.2 var(--serif)}
+.inv-h small{color:var(--muted);font-size:12px}
+.inv-bar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--surface-2);margin-bottom:12px}
+.inv-bar i{display:block;height:100%}
+.inv-chips{display:flex;flex-wrap:wrap;gap:8px}
+.inv-chip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid color-mix(in srgb,var(--sc) 45%,var(--line));background:color-mix(in srgb,var(--sc) 8%,var(--surface));color:var(--ink);border-radius:999px;padding:6px 12px 6px 10px;font:600 13px/1.2 var(--sans);cursor:pointer;text-align:left}
+.inv-chip i{width:10px;height:10px;border-radius:50%;background:var(--sc);flex:none}
+.inv-chip b{font:700 15px/1 var(--serif);color:var(--sc)}
+.inv-chip.on{background:var(--sc);border-color:var(--sc);color:#fff}
+.inv-chip.on i{background:#fff}.inv-chip.on b{color:#fff}
+.inv-chip.off{opacity:.5}
+.inv-who{margin-top:12px;border-top:1px dashed var(--line);padding-top:8px;display:grid;gap:6px}
+.inv-row{font-size:14px;line-height:1.45}
+.inv-row b{display:block;font:600 14px var(--serif);color:var(--accent)}
+.inv-mini{display:inline-flex;gap:8px;margin-right:8px}
+.inv-mini span{display:inline-flex;align-items:center;gap:3px;font-weight:700;color:var(--ink)}
+.inv-mini i{width:8px;height:8px;border-radius:50%;background:var(--sc)}
+.inv-dot{width:9px;height:9px;border-radius:50%;background:var(--sc);flex:none;align-self:center}
+.inv-dot.none{background:transparent;border:1.5px solid var(--faint)}
+.st-svg .seat.st{stroke:var(--sc);stroke-width:3;fill:color-mix(in srgb,var(--sc) 10%,var(--surface))}
+.st-svg g.hit .seat.st{fill:var(--sc);stroke:var(--sc)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .st-svg .tbl{fill:color-mix(in srgb,var(--tt,var(--accent-soft)) 22%,var(--surface))}}
 :root[data-theme="dark"] .st-svg .tbl{fill:color-mix(in srgb,var(--tt,var(--accent-soft)) 22%,var(--surface))}
 
@@ -1048,25 +1072,51 @@ function pickStatus(v){
 
 /* ── render: seating ── */
 function seatSheetIndex(){ for(var i=0;i<DATA.sheets.length;i++) if(/seat|座位|坐位|枱|檯/i.test(DATA.sheets[i].name)) return i; return -1; }
+/* invitation status: guest-name font colour in the Seating Plan, explained by the legend
+   cells "In <colour>: <meaning>" (read live from the sheet) */
+var LEGEND_RX=/^\s*in\s+([a-z]+)\s*[:：]\s*(.+?)\s*$/i;
+var HUES={red:0,orange:30,brown:25,yellow:55,green:120,teal:175,cyan:185,blue:225,navy:230,purple:275,violet:275,magenta:305,pink:330};
+var INV_SHOW={red:'#d0263b',green:'#2f8f4e',blue:'#2b6fd6',orange:'#e07b18',yellow:'#b58a00',purple:'#7a4bc2',pink:'#d94f8a'};
+function hexHsl(hex){
+  var m=/^#?([0-9a-f]{6})$/i.exec(hex||''); if(!m) return null;
+  var n=parseInt(m[1],16), r=(n>>16&255)/255, g=(n>>8&255)/255, b=(n&255)/255, mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, d=mx-mn, s=d?d/(1-Math.abs(2*l-1)):0, h=0;
+  if(d){ if(mx===r) h=((g-b)/d)%6; else if(mx===g) h=(b-r)/d+2; else h=(r-g)/d+4; h*=60; if(h<0) h+=360; }
+  return {h:h,s:s,l:l};
+}
+function invStatus(legend, fc){
+  if(!legend || !legend.length) return null;
+  var c=hexHsl(fc); if(!c || c.s<0.25 || c.l<0.1 || c.l>0.93) return null;
+  var best=null, bd=999;
+  legend.forEach(function(L){ var d=Math.abs(c.h-L.hue); d=Math.min(d,360-d); if(d<bd){ bd=d; best=L; } });
+  return bd<=50 ? best : null;
+}
 function parseSeating(si){
-  var m=model(si), blocks=[], cur=[], tables=[];
+  var m=model(si), blocks=[], cur=[], tables=[], legend=[], leg={};
+  for(var r0=1;r0<=m.R;r0++) for(var c0=1;c0<=m.C;c0++){
+    var lm=LEGEND_RX.exec(m.get(r0,c0)), k0=lm&&lm[1].toLowerCase();
+    if(lm && HUES.hasOwnProperty(k0) && !legend.some(function(L){ return L.key===k0; })){ legend.push({key:k0,label:lm[2],hue:HUES[k0],color:INV_SHOW[k0]||('hsl('+HUES[k0]+',62%,42%)'),r:r0,c:c0}); leg[r0+','+c0]=1; }
+  }
+  var val=function(r,c){ return leg[r+','+c] ? '' : m.get(r,c); };
   for(var r=1;r<=m.R;r++){
-    var has=false; for(var c=1;c<=m.C;c++) if(!m.covered(r,c) && m.get(r,c).trim()){ has=true; break; }
+    var has=false; for(var c=1;c<=m.C;c++) if(!m.covered(r,c) && val(r,c).trim()){ has=true; break; }
     if(!has){ if(cur.length){ blocks.push(cur); cur=[]; } continue; }
     cur.push(r);
   }
   if(cur.length) blocks.push(cur);
   blocks.forEach(function(rows){
     for(var c=1;c<=m.C;c++){
-      var cells=rows.filter(function(r){ return !m.covered(r,c) && m.get(r,c).trim(); }).map(function(r){ return {r:r,c:c,v:m.get(r,c)}; });
+      var cells=rows.filter(function(r){ return !m.covered(r,c) && val(r,c).trim(); }).map(function(r){ return {r:r,c:c,v:m.get(r,c),fc:m.fc(r,c)}; });
       if(!cells.length) continue;
       var ti=-1; cells.forEach(function(x,i){ if(ti<0 && /table|枱|檯|席|桌/i.test(x.v)) ti=i; });
-      tables.push({title: ti>=0?cells[ti]:null, guests: cells.filter(function(x,i){ return i!==ti; })});
+      var guests=cells.filter(function(x,i){ return i!==ti; });
+      guests.forEach(function(g){ g.st=invStatus(legend, g.fc); });
+      tables.push({title: ti>=0?cells[ti]:null, guests: guests});
     }
   });
+  tables.legend=legend;
   return tables;
 }
-function seatSvg(t, si, q){
+function seatSvg(t, si, mf){
   var n=t.guests.length, W=340, C=W/2, R=n>14?136:128, rT=n>14?70:76;
   var sr=Math.max(14, Math.min(27, Math.PI*R/Math.max(n,1)-3));
   var title=t.title?t.title.v:'', words=title.split(/\s+/), l1=title, l2='';
@@ -1081,34 +1131,61 @@ function seatSvg(t, si, q){
     var nm=g.v.trim(), len=0; for(var k=0;k<nm.length;k++) len+= nm.charCodeAt(k)>255?1.9:1;
     var fs=Math.max(8, Math.min(13, (sr*2-6)/Math.max(len,2)*1.75)), shown=nm;
     if(fs<=8 && len>9){ shown=nm.slice(0,6)+'…'; fs=8.5; }
-    var hit=q && nm.toLowerCase().indexOf(q)>=0;
-    s+='<g class="'+(q?(hit?'hit':'dim'):'')+'"'+cellAttr(si,g.r,g.c)+'><title>'+(i+1)+'. '+esc(nm)+'</title>'+
-       '<circle class="seat" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+sr.toFixed(1)+'"/>'+
+    var hit=mf && mf(g);
+    s+='<g class="'+(mf?(hit?'hit':'dim'):'')+'"'+cellAttr(si,g.r,g.c)+'><title>'+(i+1)+'. '+esc(nm)+(g.st?' · '+esc(g.st.label):'')+'</title>'+
+       '<circle class="seat'+(g.st?' st':'')+'"'+(g.st?' style="--sc:'+g.st.color+'"':'')+' cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+sr.toFixed(1)+'"/>'+
        '<text class="sname" x="'+x.toFixed(1)+'" y="'+(y+fs*0.36).toFixed(1)+'" text-anchor="middle" font-size="'+fs.toFixed(1)+'">'+esc(shown)+'</text></g>';
   });
   return s+'</svg>';
+}
+function invKey(g){ return g.st ? g.st.key : 'none'; }
+function invCardHtml(si, tables){
+  var L=tables.legend||[]; if(!L.length) return '';
+  var all=[]; tables.forEach(function(t){ t.guests.forEach(function(g){ all.push(g); }); });
+  var cnt={none:0}; L.forEach(function(x){ cnt[x.key]=0; }); all.forEach(function(g){ cnt[invKey(g)]++; });
+  var tot=all.length||1, sel=state.inv||'';
+  var opts=L.map(function(x){ return {key:x.key,label:x.label,color:x.color,r:x.r,c:x.c}; });
+  if(cnt.none) opts.push({key:'none',label:'No status',color:'var(--faint)'});
+  var h='<section class="card inv-card"><div class="inv-h"><h3>Invitations</h3><small>'+(sel?'Tap again to show all':'Tap a colour to see who')+'</small></div>';
+  h+='<div class="inv-bar">'+opts.map(function(o){ return cnt[o.key] ? '<i style="width:'+(cnt[o.key]/tot*100).toFixed(2)+'%;background:'+o.color+'"></i>' : ''; }).join('')+'</div>';
+  h+='<div class="inv-chips">'+opts.map(function(o){
+    return '<button type="button" class="inv-chip'+(sel===o.key?' on':'')+(sel&&sel!==o.key?' off':'')+'" data-inv="'+o.key+'" style="--sc:'+o.color+'"><i></i><span'+(o.r?cellAttr(si,o.r,o.c):'')+'>'+esc(o.label)+'</span><b>'+cnt[o.key]+'</b></button>';
+  }).join('')+'</div>';
+  if(sel){
+    var rows=tables.map(function(t){
+      var gs=t.guests.filter(function(g){ return invKey(g)===sel; }); if(!gs.length) return '';
+      return '<div class="inv-row"><b>'+esc(t.title?t.title.v:'Table')+'</b><span>'+gs.map(function(g){ return '<span class="inv-nm">'+esc(g.v.trim())+'</span>'; }).join(', ')+'</span></div>';
+    }).join('');
+    h+='<div class="inv-who">'+(rows||'<p class="note-s" style="margin:6px 0 0">Nobody.</p>')+'</div>';
+  }
+  return h+'</section>';
 }
 function renderSeating(){
   var si=seatSheetIndex();
   if(si<0){ $('#main').innerHTML='<p class="empty">No seating plan yet. Add a sheet tab called “Seating Plan” in the spreadsheet and it will appear here.</p>'; return; }
   var tables=parseSeating(si), total=0; tables.forEach(function(t){ total+=t.guests.length; });
+  if(state.inv && !(tables.legend||[]).some(function(x){ return x.key===state.inv; }) && state.inv!=='none') state.inv='';
   var h='<div class="eyebrow" style="margin:4px 0 2px">'+esc(DATA.sheets[si].name)+'</div>';
   h+='<div class="st-top"><div class="info-title" style="margin:0">Seating</div><small>'+tables.length+' table'+(tables.length===1?'':'s')+' · '+total+' guests</small></div>';
+  h+='<div id="inv-wrap">'+invCardHtml(si, tables)+'</div>';
   h+='<div class="tools" style="top:57px"><label class="search">'+I.search+'<input id="sq" type="search" placeholder="Find a guest…" value="'+esc(state.sq||'')+'" autocomplete="off"></label></div>';
   h+='<div id="st-wrap">'+seatTablesHtml(si,tables)+'</div>';
   if(!tables.length) h+='<p class="empty">The seating plan sheet is empty.</p>';
   $('#main').innerHTML=h;
 }
 function seatTablesHtml(si,tables){
-  var q=(state.sq||'').trim().toLowerCase();
+  var q=(state.sq||'').trim().toLowerCase(), inv=state.inv||'', L=tables.legend||[];
+  var mf = (q||inv) ? function(g){ return (!q || g.v.toLowerCase().indexOf(q)>=0) && (!inv || invKey(g)===inv); } : null;
   return tables.map(function(t){
     var title=t.title?t.title.v:'', tt='', tl='';
     if(/groom|男家|新郎/i.test(title)){ tt='#c9efeb'; tl='#0abab5'; } else if(/bride|女家|新娘/i.test(title)){ tt='#fcdbe4'; tl='#e27a98'; }
-    var any=!q || t.guests.some(function(g){ return g.v.toLowerCase().indexOf(q)>=0; });
+    var any=!mf || t.guests.some(mf);
+    var mini = L.length ? '<span class="inv-mini">'+L.map(function(x){ var n=t.guests.filter(function(g){ return invKey(g)===x.key; }).length; return n ? '<span title="'+esc(x.label)+'"><i style="--sc:'+x.color+'"></i>'+n+'</span>' : ''; }).join('')+'</span>' : '';
     return '<section class="st-card'+(any?'':' nohit')+'"'+(tt?' style="--tt:'+tt+';--tt-line:'+tl+'"':'')+'>'+
-      '<div class="st-h"><h3'+(t.title?cellAttr(si,t.title.r,t.title.c):'')+'>'+esc(title||'Table')+'</h3><small>'+t.guests.length+' seats</small></div>'+
-      (t.guests.length ? seatSvg(t,si,q) : '<p class="note-s" style="padding:4px 16px 14px;margin:0">No guests assigned yet.</p>')+
-      '<ol class="st-list">'+t.guests.map(function(g){ var hit=q && g.v.toLowerCase().indexOf(q)>=0; return '<li class="'+(hit?'hit':'')+'"'+cellAttr(si,g.r,g.c)+'>'+esc(g.v)+'</li>'; }).join('')+'</ol>'+
+      '<div class="st-h"><h3'+(t.title?cellAttr(si,t.title.r,t.title.c):'')+'>'+esc(title||'Table')+'</h3><small>'+mini+t.guests.length+' seats</small></div>'+
+      (t.guests.length ? seatSvg(t,si,mf) : '<p class="note-s" style="padding:4px 16px 14px;margin:0">No guests assigned yet.</p>')+
+      '<ol class="st-list">'+t.guests.map(function(g){ var hit=mf && mf(g);
+        return '<li class="'+(hit?'hit':'')+'"'+cellAttr(si,g.r,g.c)+'>'+(g.st?'<i class="inv-dot" style="--sc:'+g.st.color+'" title="'+esc(g.st.label)+'"></i>':(L.length?'<i class="inv-dot none"></i>':''))+'<span>'+esc(g.v)+'</span></li>'; }).join('')+'</ol>'+
       '</section>';
   }).join('');
 }
@@ -1236,7 +1313,7 @@ var UI={
   'Pick your name once. This phone will remember it, and you’ll see only your steps, what to look after and your table.':'選一次你的名字，此手機會記住，之後只顯示你的環節、你負責的物品和你的座位。',
   'Couple & family':'新人及家人','Bridal party':'兄弟姊妹','MCs':'司儀','Vendors & helpers':'供應商及幫手','Guests':'賓客',
   'No match. Try another spelling, or pick your role above.':'找不到。請試另一個拼法，或在上面選你的角色。',
-  'First call':'最早集合','Mark as done':'標記為完成','Mark as not done':'取消完成','Marked as done ✓':'已標記完成 ✓','Marked as not done':'已取消完成','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
+  'First call':'最早集合','Invitations':'請柬','No status':'未標示','Tap a colour to see who':'點擊顏色查看名單','Tap again to show all':'再點一次顯示全部','Nobody.':'沒有。','Invitation delivered':'已派請柬','Invitation to be delivered':'待派請柬','Invitation to be at reception':'請柬放於接待處','Mark as done':'標記為完成','Mark as not done':'取消完成','Marked as done ✓':'已標記完成 ✓','Marked as not done':'已取消完成','steps':'個環節','step':'個環節','to look after':'項由你負責','Now for you':'你現在的環節','Next for you':'你的下一個環節','Jump to it':'跳到該環節',
   'Your table':'你的座位','Open seating plan':'查看座位表','Your steps':'你的環節','Things you look after':'你負責的物品','Also for you':'也與你有關',
   'Only steps that mention you, your role or your group':'只顯示提及你、你的角色或組別的環節','Mentions you; someone else brings it':'提及你；由其他人負責帶',
   'Nothing in the rundown mentions you yet.':'流程中暫時未有提及你。',
@@ -1768,6 +1845,7 @@ document.addEventListener('click',function(ev){
   var mep=t.closest('[data-me]'); if(mep){ meId(mep.getAttribute('data-me')); state.meq=''; render(); window.scrollTo(0,0); return; }
   if(t.closest('[data-mechange]')){ meId(''); state.meq=''; render(); window.scrollTo(0,0); return; }
   var msf=t.closest('[data-seatme]'); if(msf){ state.sq=msf.getAttribute('data-seatme'); state.tab='seating'; ss('rd_tab','seating'); render(); window.scrollTo(0,0); return; }
+  var ivc=t.closest('[data-inv]'); if(ivc){ var ik=ivc.getAttribute('data-inv'); state.inv = state.inv===ik ? '' : ik; render(true); return; }
   var sht=t.closest('[data-sheet]'); if(sht){ state.sheet=+sht.getAttribute('data-sheet'); render(); return; }
   var mtb=t.closest('[data-mtf],[data-mtpic],[data-mtview],[data-st],[data-mtwho]');
   if(mtb){
