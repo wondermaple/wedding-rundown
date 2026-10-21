@@ -1403,7 +1403,6 @@ function renderSeating(){
   h+='<div class="tools st-tools" style="top:57px"><label class="search">'+I.search+'<input id="sq" type="search" placeholder="Find a guest…" value="'+esc(state.sq||'')+'" autocomplete="off"></label>'+(isAdmin()?ciStripHtml(tables):'')+invStripHtml(tables)+'</div>';
   h+='<div id="st-wrap">'+seatTablesHtml(si,tables)+'</div>';
   if(!tables.length) h+='<p class="empty">The seating plan sheet is empty.</p>';
-  else if(isAdmin()) h+=ciSummaryHtml(tables);
   $('#main').innerHTML=h;
 }
 function seatTablesHtml(si,tables){
