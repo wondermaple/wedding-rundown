@@ -265,7 +265,7 @@ mark{background:color-mix(in srgb,#ffd84d 70%,transparent);color:inherit;border-
 .st-tools .search{flex:1 1 100%}
 .inv-strip{display:flex;flex-wrap:wrap;gap:6px;width:100%}
 .inv-chip.sm{flex:none;padding:4px 10px 4px 8px;font-size:12px;gap:5px;white-space:nowrap}
-@media (max-width:520px){.ci-strip{display:grid;grid-template-columns:1fr 1fr;gap:5px}.ci-strip .ci-sub{grid-column:1/-1;margin-left:2px}.inv-strip{display:grid;grid-template-columns:1fr 1fr;gap:5px}.inv-chip.sm{width:100%;min-width:0;padding:4px 8px 4px 7px}.inv-chip.sm span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}}
+@media (max-width:520px){.ci-strip{display:grid;grid-template-columns:1fr 1fr;gap:5px}.ci-strip .ci-sub{grid-column:1/-1;margin-left:2px}.inv-strip{display:grid;grid-template-columns:1fr 1fr;gap:5px}.inv-chip.sm{width:100%;min-width:0;padding:4px 8px 4px 7px}.inv-chip.sm span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.inv-strip .inv-chip.sm{white-space:normal;line-height:1.2;text-align:left}.inv-strip .inv-chip.sm span{overflow:visible}}
 .inv-chip.sm i{width:9px;height:9px}
 .inv-chip.sm b{font-size:13px}
 .inv-who{margin-top:12px;border-top:1px dashed var(--line);padding-top:8px;display:grid;gap:6px}
@@ -1320,7 +1320,7 @@ function invShort(label){ var s=String(label).replace(/^\s*invitations?\s+/i,'')
 function invStripHtml(tables){
   var L=tables.legend||[]; if(!L.length) return '';
   var cnt={none:0}; L.forEach(function(x){ cnt[x.key]=0; }); tables.forEach(function(t){ t.guests.forEach(function(g){ cnt[invKey(g)]++; }); });
-  var opts=L.map(function(x){ return {key:x.key,label:invShort(x.label),full:x.label,color:x.color}; }); if(cnt.none) opts.push({key:'none',label:'No status',full:'No status',color:'var(--faint)'});
+  var opts=L.map(function(x){ return {key:x.key,label:x.label,full:x.label,color:x.color}; }); if(cnt.none) opts.push({key:'none',label:'No status',full:'No status',color:'var(--faint)'});
   var sel=state.inv||'';
   return '<div class="inv-strip" role="group" aria-label="Invitation colours">'+opts.map(function(o){
     return '<button type="button" class="inv-chip sm'+(sel===o.key?' on':'')+(sel&&sel!==o.key?' off':'')+'" data-inv="'+o.key+'" title="'+esc(o.full)+'" style="--sc:'+o.color+'"><i></i><span>'+esc(o.label)+'</span><b>'+cnt[o.key]+'</b></button>';
